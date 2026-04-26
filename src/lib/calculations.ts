@@ -1,48 +1,57 @@
 // ============================================================
-// MANITO — Fichier central de calculs
-// Ce fichier contiendra toute la logique métier de l'application.
-// Les fonctions seront complétées phase par phase.
+// MANITO — Fichier central de calculs métier
+// Toute logique de calcul doit rester ici.
+// Aucun calcul complexe dans les composants React.
 // ============================================================
 
 // ------------------------------------------------------------
-// TYPES DE BASE
+// TYPES
 // ------------------------------------------------------------
 
-/** Représente les données d'une journée de travail */
-export interface JourneeData {
+/**
+ * Données brutes saisies par le chauffeur pour une journée.
+ * Ces valeurs proviennent directement du formulaire de saisie.
+ */
+export interface DayEntry {
   id?: string
-  date: string                  // format ISO: "2024-01-15"
-  tempsConducte: number         // en minutes
-  tempsAnnexe: number           // en minutes (autres tâches rémunérées)
-  amplitude: number             // en minutes (1ère prise → fin de service)
-  tauxJournalier?: number       // en €
+  date: string          // ISO : "2026-04-27"
+  drivingMins: number   // Temps de conduite en minutes
+  workMins: number      // Temps de travail annexe en minutes
+  startTime: string     // Heure de prise de service : "06:10"
+  endTime: string       // Heure de fin de service   : "17:30"
 }
 
-/** Données calculées à partir d'une journée */
-export interface JourneeCalculee extends JourneeData {
-  tempsService: number          // conduite + annexe
-  tauxJournalier: number
+/**
+ * Statistiques calculées à partir d'une journée saisie.
+ * Ces valeurs sont dérivées — jamais saisies manuellement.
+ */
+export interface DayStats {
+  // --- Temps ---
+  serviceMins: number             // Temps de service = conduite + annexe
+  amplitudeMins: number | null    // Amplitude = fin - début (null si horaires invalides)
+
+  // --- Taux ---
+  serviceRatePercent: number      // TxService = workMins / serviceMins × 100
+  amplitudeRatePercent: number | null  // TxAmp = serviceMins / amplitudeMins × 100
+
+  // --- Écart journalier ---
+  gapMins: number                 // Écart = drivingMins / coef - workMins
+  gapSign: '+' | '-' | '='       // Signe de l'écart (pour l'affichage)
 }
 
-/** Résumé d'une semaine */
-export interface ResumeSemaine {
-  numeroSemaine: number
-  totalConduite: number         // en minutes
-  totalService: number          // en minutes
-  totalAmplitude: number        // en minutes
-  totalTaux: number             // en €
-  nombreJours: number
-}
-
-/** Résumé d'un mois */
-export interface ResumeMois {
-  mois: number                  // 1–12
-  annee: number
-  totalConduite: number
-  totalService: number
-  totalTaux: number
-  nombreJours: number
-  tauxMoyen: number             // taux moyen journalier
+/**
+ * Statistiques agrégées sur un mois (ou une semaine).
+ * Calculées en passant un tableau de DayEntry.
+ */
+export interface MonthStats {
+  daysCount: number
+  totalDrivingMins: number
+  totalWorkMins: number
+  totalServiceMins: number
+  totalAmplitudeMins: number      // Somme des amplitudes valides uniquement
+  monthlyGapMins: number          // Écart mensuel cumulé
+  avgServiceRatePercent: number   // Taux de service moyen sur la période
+  avgAmplitudeRatePercent: number // TxAmp moyen sur la période
 }
 
 // ------------------------------------------------------------
@@ -50,108 +59,381 @@ export interface ResumeMois {
 // ------------------------------------------------------------
 
 /**
- * Convertit des minutes en format "HH:MM"
- * Exemple : 150 → "02:30"
+ * Convertit des minutes en format "HH:MM".
+ * Gère les valeurs négatives avec un signe "-".
+ *
+ * minutesToHHMM(150)  → "02:30"
+ * minutesToHHMM(-90)  → "-01:30"
+ * minutesToHHMM(0)    → "00:00"
  */
-export function minutesToHHMM(minutes: number): string {
-  const h = Math.floor(Math.abs(minutes) / 60)
-  const m = Math.abs(minutes) % 60
-  const sign = minutes < 0 ? '-' : ''
+export function minutesToHHMM(mins: number): string {
+  const abs = Math.abs(mins)
+  const h   = Math.floor(abs / 60)
+  const m   = abs % 60
+  const sign = mins < 0 ? '-' : ''
   return `${sign}${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
 /**
- * Convertit "HH:MM" en minutes
- * Exemple : "02:30" → 150
+ * Convertit des minutes en texte lisible : "2h30", "9h00", "-1h15".
+ *
+ * minutesToReadable(540)  → "9h00"
+ * minutesToReadable(150)  → "2h30"
+ * minutesToReadable(-75)  → "-1h15"
  */
-export function hhmmToMinutes(hhmm: string): number {
-  const [h, m] = hhmm.split(':').map(Number)
-  return h * 60 + (m ?? 0)
+export function minutesToReadable(mins: number): string {
+  const abs  = Math.abs(mins)
+  const h    = Math.floor(abs / 60)
+  const m    = abs % 60
+  const sign = mins < 0 ? '-' : ''
+  return m === 0
+    ? `${sign}${h}h`
+    : `${sign}${h}h${String(m).padStart(2, '0')}`
 }
 
 /**
- * Formate des minutes en texte lisible
- * Exemple : 150 → "2h30"
+ * Convertit une chaîne "HH:MM" en minutes.
+ * Retourne null si le format est invalide.
+ *
+ * hhmmToMinutes("07:15") → 435
+ * hhmmToMinutes("00:00") → 0
+ * hhmmToMinutes("abc")   → null
  */
-export function minutesToReadable(minutes: number): string {
-  const h = Math.floor(Math.abs(minutes) / 60)
-  const m = Math.abs(minutes) % 60
-  const sign = minutes < 0 ? '-' : ''
-  if (m === 0) return `${sign}${h}h`
-  return `${sign}${h}h${String(m).padStart(2, '0')}`
-}
-
-// ------------------------------------------------------------
-// CALCULS JOURNALIERS
-// ------------------------------------------------------------
-
-/**
- * Calcule le temps de service = conduite + annexe
- */
-export function calcTempsService(conduite: number, annexe: number): number {
-  return conduite + annexe
-}
-
-/**
- * Calcule le taux journalier brut
- * (logique exacte à affiner en phase suivante selon la convention)
- */
-export function calcTauxJournalier(tempsService: number, tauxHoraire: number): number {
-  return Math.round((tempsService / 60) * tauxHoraire * 100) / 100
-}
-
-/**
- * Calcule et retourne une journée complète avec tous les champs dérivés
- */
-export function calcJournee(
-  data: JourneeData,
-  tauxHoraire: number
-): JourneeCalculee {
-  const tempsService = calcTempsService(data.tempsConducte, data.tempsAnnexe)
-  const tauxJournalier = calcTauxJournalier(tempsService, tauxHoraire)
-  return { ...data, tempsService, tauxJournalier }
+export function hhmmToMinutes(hhmm: string): number | null {
+  if (!hhmm || !/^\d{1,2}:\d{2}$/.test(hhmm)) return null
+  const parts = hhmm.split(':')
+  const h = parseInt(parts[0], 10)
+  const m = parseInt(parts[1], 10)
+  if (isNaN(h) || isNaN(m) || m < 0 || m > 59 || h < 0) return null
+  return h * 60 + m
 }
 
 // ------------------------------------------------------------
-// CALCULS PÉRIODIQUES
+// 1. TEMPS DE SERVICE
 // ------------------------------------------------------------
 
 /**
- * Calcule le taux mensuel total
+ * Calcule le temps de service = conduite + annexe.
+ *
+ * calcServiceMins(420, 120) → 540  (soit 09h00)
  */
-export function calcTauxMensuel(journees: JourneeCalculee[]): number {
-  return Math.round(
-    journees.reduce((acc, j) => acc + j.tauxJournalier, 0) * 100
-  ) / 100
+export function calcServiceMins(drivingMins: number, workMins: number): number {
+  return drivingMins + workMins
+}
+
+// ------------------------------------------------------------
+// 2. TAUX DE SERVICE (TxService)
+// ------------------------------------------------------------
+
+/**
+ * Calcule le taux de service : part du temps annexe dans le temps de service.
+ *   serviceRatePercent = workMins / serviceMins × 100
+ *
+ * Retourne 0 si serviceMins = 0 (jamais NaN ni Infinity).
+ * Arrondi à 2 décimales.
+ *
+ * calcServiceRatePercent(120, 540) → 22.22
+ * calcServiceRatePercent(0, 0)     → 0
+ */
+export function calcServiceRatePercent(workMins: number, serviceMins: number): number {
+  if (serviceMins <= 0) return 0
+  return Math.round((workMins / serviceMins) * 100 * 100) / 100
+}
+
+// ------------------------------------------------------------
+// 3. AMPLITUDE
+// ------------------------------------------------------------
+
+/**
+ * Calcule l'amplitude en minutes à partir de deux horaires "HH:MM".
+ *   amplitudeMins = endTime - startTime
+ *
+ * Retourne null si :
+ *   - l'un des formats est invalide
+ *   - fin <= début (journée incohérente)
+ *
+ * calcAmplitudeMins("06:10", "17:30") → 680  (soit 11h20)
+ * calcAmplitudeMins("17:30", "06:10") → null
+ * calcAmplitudeMins("abc",   "17:30") → null
+ */
+export function calcAmplitudeMins(startTime: string, endTime: string): number | null {
+  const start = hhmmToMinutes(startTime)
+  const end   = hhmmToMinutes(endTime)
+  if (start === null || end === null) return null
+  if (end <= start) return null
+  return end - start
+}
+
+// ------------------------------------------------------------
+// 4. TXAMP — Taux d'amplitude
+// ------------------------------------------------------------
+
+/**
+ * Calcule le TxAmp : part du temps de service dans l'amplitude.
+ *   amplitudeRatePercent = serviceMins / amplitudeMins × 100
+ *
+ * ATTENTION : c'est serviceMins / amplitudeMins, PAS workMins / amplitudeMins.
+ *
+ * Retourne null si amplitudeMins est null ou ≤ 0.
+ * Arrondi à 2 décimales.
+ *
+ * calcAmplitudeRatePercent(540, 680) → 79.41
+ * calcAmplitudeRatePercent(540, null) → null
+ */
+export function calcAmplitudeRatePercent(
+  serviceMins: number,
+  amplitudeMins: number | null
+): number | null {
+  if (amplitudeMins === null || amplitudeMins <= 0) return null
+  return Math.round((serviceMins / amplitudeMins) * 100 * 100) / 100
+}
+
+// ------------------------------------------------------------
+// 5. COEFFICIENT DE RÉFÉRENCE
+// ------------------------------------------------------------
+
+/**
+ * Calcule le coefficient à partir du taux de référence annuel.
+ *   coefficient = 100 / referenceRatePercent - 1
+ *
+ * Ce coefficient est utilisé dans le calcul de l'écart journalier.
+ *
+ * calcReferenceCoefficient(20) → 4.0
+ * calcReferenceCoefficient(23) → 3.3478...
+ *
+ * Retourne null si referenceRatePercent ≤ 0 (division impossible).
+ */
+export function calcReferenceCoefficient(referenceRatePercent: number): number | null {
+  if (referenceRatePercent <= 0) return null
+  return 100 / referenceRatePercent - 1
+}
+
+// ------------------------------------------------------------
+// 6. ÉCART JOURNALIER AU TAUX
+// ------------------------------------------------------------
+
+/**
+ * Calcule l'écart journalier en minutes par rapport au taux de référence.
+ *   gapMins = drivingMins / coefficient - workMins
+ *
+ * Interprétation :
+ *   > 0  → minutes disponibles (on est en avance sur le taux)
+ *   < 0  → minutes de retard  (on a trop de temps annexe)
+ *   = 0  → parfaitement dans le taux
+ *
+ * Retourne null si referenceRatePercent ≤ 0.
+ * Arrondi à l'entier le plus proche (minutes entières).
+ *
+ * calcGapMins(420, 90, 20)
+ *   coef = 4  →  420 / 4 - 90  =  15  → "+00h15 disponibles"
+ *
+ * calcGapMins(420, 120, 20)
+ *   coef = 4  →  420 / 4 - 120 = -15  → "-00h15 de retard"
+ */
+export function calcGapMins(
+  drivingMins: number,
+  workMins: number,
+  referenceRatePercent: number
+): number | null {
+  const coef = calcReferenceCoefficient(referenceRatePercent)
+  if (coef === null || coef === 0) return null
+  return Math.round(drivingMins / coef - workMins)
+}
+
+// ------------------------------------------------------------
+// 7. ÉCART MENSUEL CUMULÉ
+// ------------------------------------------------------------
+
+/**
+ * Calcule l'écart cumulé sur un mois entier (même logique, données agrégées).
+ *   monthlyGapMins = totalDrivingMins / coefficient - totalWorkMins
+ *
+ * calcMonthlyGapMins(8400, 1800, 20)
+ *   coef = 4  →  8400 / 4 - 1800  =  300  → "+05h00"
+ */
+export function calcMonthlyGapMins(
+  totalDrivingMins: number,
+  totalWorkMins: number,
+  referenceRatePercent: number
+): number | null {
+  return calcGapMins(totalDrivingMins, totalWorkMins, referenceRatePercent)
+}
+
+// ------------------------------------------------------------
+// FONCTIONS COMPOSÉES
+// ------------------------------------------------------------
+
+/**
+ * Calcule l'intégralité des statistiques d'une journée depuis les données brutes.
+ * Fonction principale à appeler dans les composants React.
+ *
+ * Exemple :
+ *   calcDayStats({ drivingMins: 420, workMins: 120, startTime: "06:10", endTime: "17:30" }, 20)
+ *   → {
+ *       serviceMins:            540,
+ *       amplitudeMins:          680,
+ *       serviceRatePercent:     22.22,
+ *       amplitudeRatePercent:   79.41,
+ *       gapMins:               -15,
+ *       gapSign:               '-',
+ *     }
+ */
+export function calcDayStats(
+  entry: Pick<DayEntry, 'drivingMins' | 'workMins' | 'startTime' | 'endTime'>,
+  referenceRatePercent: number
+): DayStats {
+  const serviceMins            = calcServiceMins(entry.drivingMins, entry.workMins)
+  const amplitudeMins          = calcAmplitudeMins(entry.startTime, entry.endTime)
+  const serviceRatePercent     = calcServiceRatePercent(entry.workMins, serviceMins)
+  const amplitudeRatePercent   = calcAmplitudeRatePercent(serviceMins, amplitudeMins)
+  const gapMinsRaw             = calcGapMins(entry.drivingMins, entry.workMins, referenceRatePercent)
+  const gapMins                = gapMinsRaw ?? 0
+
+  const gapSign: DayStats['gapSign'] =
+    gapMins > 0 ? '+' :
+    gapMins < 0 ? '-' : '='
+
+  return {
+    serviceMins,
+    amplitudeMins,
+    serviceRatePercent,
+    amplitudeRatePercent,
+    gapMins,
+    gapSign,
+  }
 }
 
 /**
- * Calcule l'écart entre taux réel et taux cible
- * Positif = au-dessus du cible, négatif = en dessous
+ * Calcule les statistiques agrégées d'un ensemble de journées (mois ou semaine).
+ * Ignore les journées dont l'amplitude est invalide (null) pour les moyennes.
  */
-export function calcEcartTaux(tauxReel: number, tauxCible: number): number {
-  return Math.round((tauxReel - tauxCible) * 100) / 100
+export function calcMonthStats(
+  entries: DayEntry[],
+  referenceRatePercent: number
+): MonthStats {
+  if (entries.length === 0) {
+    return {
+      daysCount: 0,
+      totalDrivingMins: 0,
+      totalWorkMins: 0,
+      totalServiceMins: 0,
+      totalAmplitudeMins: 0,
+      monthlyGapMins: 0,
+      avgServiceRatePercent: 0,
+      avgAmplitudeRatePercent: 0,
+    }
+  }
+
+  const stats = entries.map(e => ({
+    entry: e,
+    day: calcDayStats(e, referenceRatePercent),
+  }))
+
+  const totalDrivingMins  = entries.reduce((a, e) => a + e.drivingMins, 0)
+  const totalWorkMins     = entries.reduce((a, e) => a + e.workMins, 0)
+  const totalServiceMins  = stats.reduce((a, s) => a + s.day.serviceMins, 0)
+
+  // Amplitude : on n'additionne que les journées où elle est valide
+  const validAmplitudes   = stats.filter(s => s.day.amplitudeMins !== null)
+  const totalAmplitudeMins = validAmplitudes.reduce(
+    (a, s) => a + (s.day.amplitudeMins as number), 0
+  )
+
+  const monthlyGapMinsRaw = calcMonthlyGapMins(totalDrivingMins, totalWorkMins, referenceRatePercent)
+  const monthlyGapMins    = monthlyGapMinsRaw ?? 0
+
+  // Moyennes : calculées sur l'ensemble des journées valides
+  const avgServiceRatePercent =
+    totalServiceMins > 0
+      ? Math.round((totalWorkMins / totalServiceMins) * 100 * 100) / 100
+      : 0
+
+  const avgAmplitudeRatePercent =
+    totalAmplitudeMins > 0
+      ? Math.round((totalServiceMins / totalAmplitudeMins) * 100 * 100) / 100
+      : 0
+
+  return {
+    daysCount: entries.length,
+    totalDrivingMins,
+    totalWorkMins,
+    totalServiceMins,
+    totalAmplitudeMins,
+    monthlyGapMins,
+    avgServiceRatePercent,
+    avgAmplitudeRatePercent,
+  }
+}
+
+// ------------------------------------------------------------
+// PROJECTION DE FIN DE MOIS
+// ------------------------------------------------------------
+
+/** Résultat d'une projection de fin de mois */
+export interface ProjectionResult {
+  projectedDrivingMins: number
+  projectedWorkMins: number
+  projectedServiceMins: number
+  projectedServiceRatePercent: number
+  projectedGapMins: number | null
+  daysRemaining: number
+  daysWorked: number
 }
 
 /**
- * Calcule le résumé d'un ensemble de journées (semaine ou mois)
+ * Projette les statistiques en fin de mois en extrapolant le rythme actuel.
+ *
+ * Base de calcul :
+ *   moyenne journalière = total / jours travaillés
+ *   projection = total + moyenne × jours restants dans le mois
+ *
+ * Retourne null si :
+ *   - aucune journée saisie
+ *   - le mois n'est pas le mois courant (projection hors-sens)
+ *   - plus aucun jour restant (fin de mois atteinte)
+ *
+ * @param entries    journées saisies du mois
+ * @param monthKey   format "yyyy-MM" (ex: "2026-04")
  */
-export function calcResumePeriode(journees: JourneeCalculee[]): {
-  totalConduite: number
-  totalService: number
-  totalAmplitude: number
-  totalTaux: number
-  nombreJours: number
-  tauxMoyen: number
-} {
-  const totalConduite = journees.reduce((a, j) => a + j.tempsConducte, 0)
-  const totalService = journees.reduce((a, j) => a + j.tempsService, 0)
-  const totalAmplitude = journees.reduce((a, j) => a + j.amplitude, 0)
-  const totalTaux = calcTauxMensuel(journees)
-  const nombreJours = journees.length
-  const tauxMoyen = nombreJours > 0
-    ? Math.round((totalTaux / nombreJours) * 100) / 100
-    : 0
+export function calcMonthProjection(
+  entries: DayEntry[],
+  monthKey: string,
+  referenceRatePercent: number
+): ProjectionResult | null {
+  const daysWorked = entries.length
+  if (daysWorked === 0) return null
 
-  return { totalConduite, totalService, totalAmplitude, totalTaux, nombreJours, tauxMoyen }
+  // Seulement pour le mois courant
+  const today      = new Date()
+  const currentKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`
+  if (monthKey !== currentKey) return null
+
+  // Jours restants dans le mois (à partir de demain)
+  const [year, month]  = monthKey.split('-').map(Number)
+  const daysInMonth    = new Date(year, month, 0).getDate()
+  const daysRemaining  = Math.max(0, daysInMonth - today.getDate())
+  if (daysRemaining === 0) return null
+
+  const totalDriving = entries.reduce((a, e) => a + e.drivingMins, 0)
+  const totalWork    = entries.reduce((a, e) => a + e.workMins, 0)
+
+  const avgDriving = totalDriving / daysWorked
+  const avgWork    = totalWork    / daysWorked
+
+  const projectedDrivingMins = Math.round(totalDriving + avgDriving * daysRemaining)
+  const projectedWorkMins    = Math.round(totalWork    + avgWork    * daysRemaining)
+  const projectedServiceMins = calcServiceMins(projectedDrivingMins, projectedWorkMins)
+
+  const projectedServiceRatePercent = calcServiceRatePercent(projectedWorkMins, projectedServiceMins)
+  const projectedGapMins            = calcMonthlyGapMins(projectedDrivingMins, projectedWorkMins, referenceRatePercent)
+
+  return {
+    projectedDrivingMins,
+    projectedWorkMins,
+    projectedServiceMins,
+    projectedServiceRatePercent,
+    projectedGapMins,
+    daysRemaining,
+    daysWorked,
+  }
 }
