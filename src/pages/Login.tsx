@@ -40,11 +40,17 @@ function ForgotPasswordView({ onBack }: { onBack: () => void }) {
 
     setLoading(true)
 
-    // On appelle Supabase — le résultat est toujours ignoré
-    // pour ne jamais révéler si l'email existe ou non.
-    await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/reset-password`,
-    })
+    // On capture l'erreur pour le debug console, mais on affiche
+    // toujours le message neutre côté UI — ne jamais révéler si
+    // l'email existe ou non (sécurité anti-enumération).
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+      email.trim(),
+      { redirectTo: `${window.location.origin}/reset-password` }
+    )
+
+    if (resetError) {
+      console.error('[MANITAUX reset password]', resetError)
+    }
 
     setLoading(false)
     setSent(true)
@@ -68,8 +74,10 @@ function ForgotPasswordView({ onBack }: { onBack: () => void }) {
             <h2 className="text-white text-xl font-bold">Email envoyé</h2>
             <p className="text-slate-400 text-sm mt-2 leading-relaxed">
               Si un compte existe avec cet email, un lien de
-              réinitialisation a été envoyé. Vérifiez votre boîte mail
-              (et vos spams).
+              réinitialisation a été envoyé.
+            </p>
+            <p className="text-slate-500 text-xs mt-3 leading-relaxed">
+              💡 Pensez à vérifier vos spams ou courriers indésirables.
             </p>
           </div>
 
