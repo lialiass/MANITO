@@ -96,15 +96,14 @@ export default function ResetPassword() {
             <span className="text-white text-2xl font-black tracking-tight">M</span>
           </div>
 
-          <div className="w-14 h-14 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-center justify-center mx-auto">
-            <AlertCircle size={24} className="text-red-400" />
+          <div className="w-14 h-14 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-center mx-auto">
+            <CheckCircle2 size={24} className="text-emerald-400" />
           </div>
 
           <div>
-            <h2 className="text-white text-xl font-bold">Lien expiré</h2>
+            <h2 className="text-white text-xl font-bold">Mot de passe confirmé</h2>
             <p className="text-slate-400 text-sm mt-2 leading-relaxed">
-              Ce lien de réinitialisation est invalide ou a expiré.
-              Retournez sur la page de connexion pour en demander un nouveau.
+              Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.
             </p>
           </div>
 

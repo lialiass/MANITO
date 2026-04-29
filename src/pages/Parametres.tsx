@@ -387,7 +387,7 @@ export default function Parametres() {
   function handleResetAll() {
     clearAll()
     setConfirmReset(false)
-    showFeedback('Cache local vidé')
+    showFeedback('Données locales réinitialisées')
   }
 
   const sortedRates  = [...annualRates].sort((a, b) => b.year - a.year)
@@ -527,14 +527,14 @@ export default function Parametres() {
             </div>
           </div>
 
-          {/* Zone danger — vider le cache local */}
+          {/* Zone danger — réinitialiser les données locales */}
           <div className="py-3.5">
             {confirmReset ? (
               <div className="space-y-3">
                 <div className="flex items-start gap-2">
                   <AlertCircle size={14} className="text-red-400 mt-0.5 shrink-0" />
                   <p className="text-red-300 text-sm">
-                    Vider le cache local ? Vos données Supabase restent intactes.
+                    Réinitialiser les données de cet appareil ? Vos données enregistrées restent conservées sur votre compte.
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -544,7 +544,7 @@ export default function Parametres() {
                   </button>
                   <button onClick={handleResetAll}
                     className="flex-1 py-2.5 rounded-xl bg-red-600/80 text-white text-sm font-semibold active:opacity-70">
-                    Vider
+                    Réinitialiser
                   </button>
                 </div>
               </div>
@@ -555,9 +555,9 @@ export default function Parametres() {
                   <X size={14} className="text-red-400" />
                 </div>
                 <div className="text-left">
-                  <p className="text-red-400 text-sm font-medium">Vider le cache local</p>
+                  <p className="text-red-400 text-sm font-medium">Réinitialiser les données de cet appareil</p>
                   <p className="text-slate-600 text-[11px] mt-0.5">
-                    Les données Supabase ne sont pas affectées
+                    Vos données enregistrées restent conservées sur votre compte
                   </p>
                 </div>
               </button>
