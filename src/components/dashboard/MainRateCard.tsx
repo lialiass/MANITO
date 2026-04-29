@@ -89,7 +89,6 @@ interface MainRateCardProps {
 
 export default function MainRateCard({ monthStats, referenceRatePercent, monthLabel }: MainRateCardProps) {
   const currentRate = monthStats.avgServiceRatePercent
-  const gap         = monthStats.monthlyGapMins
   const hasData     = monthStats.daysCount > 0
 
   // Couleur dynamique basée sur le TxService (seuils : <20% vert, <27% orange, ≥27% rouge)
