@@ -27,15 +27,15 @@ export type Page = 'dashboard' | 'saisie' | 'historique' | 'analyse' | 'parametr
 //   1. Supabase respecte redirectTo → /reset-password#access_token=TOKEN
 //   2. Supabase ignore le path      → /#access_token=TOKEN&type=recovery
 //
-// On couvre les deux en vérifiant aussi le hash de l'URL.
-// "access_token" seul suffit puisque cette app n'utilise pas
-// d'autres flux OAuth qui produiraient ce paramètre.
+// On vérifie aussi le hash de l'URL pour le cas où Supabase ignore le path.
+// IMPORTANT : on cible uniquement "type=recovery" et pas "access_token" seul,
+// car les liens de confirmation email contiennent aussi un access_token
+// (type=signup) — les attraper ici afficherait ResetPassword par erreur.
 // ------------------------------------------------------------
 
 const IS_RESET_PASSWORD_PATH =
   window.location.pathname === '/reset-password' ||
-  window.location.hash.includes('type=recovery') ||
-  window.location.hash.includes('access_token')
+  window.location.hash.includes('type=recovery')
 
 // ------------------------------------------------------------
 // Écran de chargement initial (vérification session Supabase)
