@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { format, parseISO } from 'date-fns'
+import { fr } from 'date-fns/locale'
 import {
   Percent,
   Plus,
@@ -9,13 +11,17 @@ import {
   X,
   Info,
   Shield,
+  LogOut,
+  Loader2,
 } from 'lucide-react'
 import {
   useSettingsStore,
   useRateForYear,
   type AnnualRate,
 } from '../store/useSettingsStore'
-import { useDaysStore } from '../store/useDaysStore'
+import { useDaysStore }    from '../store/useDaysStore'
+import { useAuthStore }    from '../store/useAuthStore'
+import { useProfileStore } from '../store/useProfileStore'
 import { DEFAULT_REFERENCE_RATE_PERCENT } from '../lib/constants'
 
 // ------------------------------------------------------------
@@ -24,9 +30,186 @@ import { DEFAULT_REFERENCE_RATE_PERCENT } from '../lib/constants'
 
 const THIS_YEAR = new Date().getFullYear()
 
-// ------------------------------------------------------------
-// Sous-composant : ligne d'un taux annuel
-// ------------------------------------------------------------
+// ============================================================
+// SECTION COMPTE
+// ============================================================
+
+function AccountSection({ onFeedback }: { onFeedback: (msg: string) => void }) {
+  const { user, signOut }                      = useAuthStore()
+  const { displayName, updateDisplayName }     = useProfileStore()
+
+  // ── Édition pseudo ────────────────────────────────────────
+  const [editingName,  setEditingName]  = useState(false)
+  const [nameInput,    setNameInput]    = useState('')
+  const [nameSaving,   setNameSaving]   = useState(false)
+  const [nameError,    setNameError]    = useState<string | null>(null)
+
+  // ── Confirmation déconnexion ──────────────────────────────
+  const [confirmLogout, setConfirmLogout] = useState(false)
+  const [loggingOut,    setLoggingOut]    = useState(false)
+
+  // ── Valeurs affichées ────────────────────────────────────
+  const email         = user?.email ?? ''
+  const shownName     = displayName ?? 'Utilisateur'
+  const avatarLetter  = (displayName ?? email ?? 'U')[0].toUpperCase()
+  const memberSince   = user?.created_at
+    ? format(parseISO(user.created_at), 'MMMM yyyy', { locale: fr })
+    : null
+
+  // ── Handlers pseudo ──────────────────────────────────────
+  function startEditName() {
+    setNameInput(displayName ?? '')
+    setNameError(null)
+    setEditingName(true)
+  }
+
+  async function handleSaveName() {
+    const trimmed = nameInput.trim()
+    if (!trimmed)          { setNameError('Le pseudo ne peut pas être vide.'); return }
+    if (trimmed.length > 30) { setNameError('30 caractères maximum.'); return }
+
+    setNameSaving(true)
+    const { error } = await updateDisplayName(user!.id, trimmed)
+    setNameSaving(false)
+
+    if (error) {
+      setNameError(error)
+    } else {
+      setEditingName(false)
+      onFeedback(`Pseudo mis à jour : ${trimmed}`)
+    }
+  }
+
+  // ── Handler déconnexion ──────────────────────────────────
+  async function handleLogout() {
+    setLoggingOut(true)
+    await signOut()
+    // App.tsx détecte user === null et vide tous les stores
+  }
+
+  // ── Rendu ────────────────────────────────────────────────
+  return (
+    <div className="bg-[#0e1628] border border-[#1a2d4a] rounded-2xl overflow-hidden">
+
+      {/* ── Carte identité ──────────────────────────────── */}
+      <div className="px-4 py-4 bg-[#111e35] border-b border-[#1a2d4a] flex items-center gap-4">
+        {/* Avatar */}
+        <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-900/40 shrink-0">
+          <span className="text-white text-xl font-black">{avatarLetter}</span>
+        </div>
+
+        {/* Infos */}
+        <div className="flex-1 min-w-0">
+          <p className="text-white font-bold text-base truncate">{shownName}</p>
+          <p className="text-slate-400 text-xs truncate mt-0.5">{email}</p>
+          {memberSince && (
+            <p className="text-slate-600 text-[10px] mt-1 capitalize">
+              Membre depuis {memberSince}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* ── Modifier le pseudo ───────────────────────────── */}
+      {editingName ? (
+        <div className="px-4 py-4 border-b border-[#1a2d4a] space-y-3">
+          <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">
+            Modifier le pseudo
+          </p>
+          <input
+            type="text"
+            value={nameInput}
+            maxLength={30}
+            placeholder="Votre pseudo"
+            autoFocus
+            onChange={(e) => { setNameInput(e.target.value); setNameError(null) }}
+            className={`w-full bg-[#080d1a] text-white border rounded-xl px-4 py-3 text-sm focus:border-blue-500/70 focus:outline-none transition-colors placeholder:text-slate-700 ${
+              nameError ? 'border-red-500/50' : 'border-[#1a2d4a]'
+            }`}
+          />
+          {nameError && (
+            <p className="text-red-400 text-xs flex items-center gap-1.5">
+              <AlertCircle size={12} />{nameError}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setEditingName(false); setNameError(null) }}
+              className="flex-1 py-2.5 rounded-xl bg-[#162440] text-slate-300 text-sm font-medium border border-[#1a2d4a] active:opacity-70"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={handleSaveName}
+              disabled={nameSaving}
+              className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold disabled:opacity-60 flex items-center justify-center gap-2 active:opacity-80"
+            >
+              {nameSaving
+                ? <><Loader2 size={13} className="animate-spin" />Enregistrement…</>
+                : 'Enregistrer'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={startEditName}
+          className="w-full flex items-center justify-between px-4 py-3.5 border-b border-[#1a2d4a] hover:bg-[#111e35] transition-colors active:opacity-70"
+        >
+          <div className="flex items-center gap-3">
+            <div className="bg-[#162440] p-2 rounded-xl">
+              <Pencil size={14} className="text-slate-400" />
+            </div>
+            <span className="text-white text-sm font-medium">Modifier le pseudo</span>
+          </div>
+          <Pencil size={13} className="text-slate-600" />
+        </button>
+      )}
+
+      {/* ── Déconnexion ─────────────────────────────────── */}
+      {confirmLogout ? (
+        <div className="px-4 py-4 space-y-3">
+          <div className="flex items-start gap-2">
+            <AlertCircle size={14} className="text-amber-400 mt-0.5 shrink-0" />
+            <p className="text-slate-300 text-sm">
+              Se déconnecter de <span className="font-semibold text-white">{email}</span> ?
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setConfirmLogout(false)}
+              className="flex-1 py-2.5 rounded-xl bg-[#162440] text-slate-300 text-sm font-medium border border-[#1a2d4a] active:opacity-70"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="flex-1 py-2.5 rounded-xl bg-red-600/80 hover:bg-red-600 text-white text-sm font-semibold disabled:opacity-60 flex items-center justify-center gap-2 active:opacity-80"
+            >
+              {loggingOut
+                ? <><Loader2 size={13} className="animate-spin" />Déconnexion…</>
+                : 'Se déconnecter'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => setConfirmLogout(true)}
+          className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-[#111e35] transition-colors active:opacity-70"
+        >
+          <div className="bg-red-500/10 p-2 rounded-xl">
+            <LogOut size={14} className="text-red-400" />
+          </div>
+          <span className="text-red-400 text-sm font-medium">Se déconnecter</span>
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ============================================================
+// TAUX ANNUELS — sous-composants (inchangés)
+// ============================================================
 
 interface RateRowProps {
   rate: AnnualRate
@@ -65,16 +248,13 @@ function RateRow({ rate, isCurrentYear, onEdit, onDelete }: RateRowProps) {
   return (
     <div className="flex items-center justify-between py-3 border-b border-[#1a2d4a]/60 last:border-0">
       <div className="flex items-center gap-3">
-        {/* Badge année */}
         <div className={`px-2.5 py-1 rounded-lg text-xs font-bold tabular-nums ${
           isCurrentYear
             ? 'bg-blue-500/15 text-blue-300 border border-blue-500/25'
             : 'bg-[#162440] text-slate-400 border border-[#1e3560]'
         }`}>
           {rate.year}
-          {isCurrentYear && (
-            <span className="ml-1.5 text-blue-400/70 font-normal">•</span>
-          )}
+          {isCurrentYear && <span className="ml-1.5 text-blue-400/70 font-normal">•</span>}
         </div>
         <span className="text-white text-sm font-semibold tabular-nums">
           {rate.referenceRatePercent} %
@@ -83,7 +263,6 @@ function RateRow({ rate, isCurrentYear, onEdit, onDelete }: RateRowProps) {
           <span className="text-slate-600 text-[10px]">en cours</span>
         )}
       </div>
-
       <div className="flex items-center gap-1">
         <button
           onClick={() => onEdit(rate)}
@@ -92,7 +271,6 @@ function RateRow({ rate, isCurrentYear, onEdit, onDelete }: RateRowProps) {
         >
           <Pencil size={13} />
         </button>
-        {/* On ne peut pas supprimer l'année en cours */}
         {!isCurrentYear && (
           <button
             onClick={() => setConfirmingDelete(true)}
@@ -107,37 +285,29 @@ function RateRow({ rate, isCurrentYear, onEdit, onDelete }: RateRowProps) {
   )
 }
 
-// ------------------------------------------------------------
-// Sous-composant : formulaire d'ajout / édition
-// ------------------------------------------------------------
-
 interface RateFormProps {
-  editingYear: number | null   // null = ajout, number = édition
-  initialRate: number
+  editingYear:   number | null
+  initialRate:   number
   existingYears: number[]
-  onSave: (year: number, rate: number) => void
-  onCancel: () => void
+  onSave:        (year: number, rate: number) => void
+  onCancel:      () => void
 }
 
 function RateForm({ editingYear, initialRate, existingYears, onSave, onCancel }: RateFormProps) {
-  const [year, setYear]   = useState(editingYear !== null ? String(editingYear) : '')
-  const [rate, setRate]   = useState(String(initialRate))
+  const [year,   setYear]   = useState(editingYear !== null ? String(editingYear) : '')
+  const [rate,   setRate]   = useState(String(initialRate))
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   function validate(): Record<string, string> {
     const errs: Record<string, string> = {}
     const y = parseInt(year, 10)
     const r = parseFloat(rate)
-
     if (!year || isNaN(y) || y < 2000 || y > 2100)
       errs.year = 'Année invalide (ex : 2025)'
-
     if (editingYear === null && existingYears.includes(y))
       errs.year = `Un taux existe déjà pour ${y}`
-
     if (!rate || isNaN(r) || r <= 0 || r >= 100)
       errs.rate = 'Le taux doit être entre 1 et 99 %'
-
     return errs
   }
 
@@ -154,73 +324,35 @@ function RateForm({ editingYear, initialRate, existingYears, onSave, onCancel }:
       <p className="text-blue-300 text-xs font-semibold uppercase tracking-wider">
         {isEditing ? `Modifier le taux ${editingYear}` : 'Ajouter un taux annuel'}
       </p>
-
       <div className="grid grid-cols-2 gap-3">
-        {/* Année */}
         <div>
           <label className="text-slate-500 text-xs block mb-1.5">Année</label>
           <input
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            maxLength={4}
-            value={year}
-            placeholder="2025"
-            disabled={isEditing}
-            onChange={(e) => {
-              setYear(e.target.value.replace(/\D/g, ''))
-              setErrors((p) => ({ ...p, year: '' }))
-            }}
-            className={`w-full bg-[#080d1a] text-white border rounded-xl px-3 py-3 text-sm font-bold tabular-nums text-center focus:border-blue-500/60 focus:outline-none transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-              errors.year ? 'border-red-500/60' : 'border-[#1a2d4a]'
-            }`}
+            type="text" inputMode="numeric" pattern="[0-9]*" maxLength={4}
+            value={year} placeholder="2025" disabled={isEditing}
+            onChange={(e) => { setYear(e.target.value.replace(/\D/g, '')); setErrors(p => ({...p, year: ''})) }}
+            className={`w-full bg-[#080d1a] text-white border rounded-xl px-3 py-3 text-sm font-bold tabular-nums text-center focus:border-blue-500/60 focus:outline-none transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${errors.year ? 'border-red-500/60' : 'border-[#1a2d4a]'}`}
           />
-          {errors.year && (
-            <p className="text-red-400 text-[11px] mt-1 flex items-center gap-1">
-              <AlertCircle size={10} />{errors.year}
-            </p>
-          )}
+          {errors.year && <p className="text-red-400 text-[11px] mt-1 flex items-center gap-1"><AlertCircle size={10} />{errors.year}</p>}
         </div>
-
-        {/* Taux */}
         <div>
           <label className="text-slate-500 text-xs block mb-1.5">Taux de référence</label>
-          <div className={`flex items-center bg-[#080d1a] border rounded-xl px-3 focus-within:border-blue-500/60 transition-colors ${
-            errors.rate ? 'border-red-500/60' : 'border-[#1a2d4a]'
-          }`}>
+          <div className={`flex items-center bg-[#080d1a] border rounded-xl px-3 focus-within:border-blue-500/60 transition-colors ${errors.rate ? 'border-red-500/60' : 'border-[#1a2d4a]'}`}>
             <input
-              type="text"
-              inputMode="decimal"
-              value={rate}
-              placeholder="20"
-              onChange={(e) => {
-                setRate(e.target.value.replace(/[^0-9.]/g, ''))
-                setErrors((p) => ({ ...p, rate: '' }))
-              }}
+              type="text" inputMode="decimal" value={rate} placeholder="20"
+              onChange={(e) => { setRate(e.target.value.replace(/[^0-9.]/g, '')); setErrors(p => ({...p, rate: ''})) }}
               className="flex-1 bg-transparent text-white py-3 text-sm font-bold tabular-nums text-center focus:outline-none"
             />
             <span className="text-slate-500 text-sm">%</span>
           </div>
-          {errors.rate && (
-            <p className="text-red-400 text-[11px] mt-1 flex items-center gap-1">
-              <AlertCircle size={10} />{errors.rate}
-            </p>
-          )}
+          {errors.rate && <p className="text-red-400 text-[11px] mt-1 flex items-center gap-1"><AlertCircle size={10} />{errors.rate}</p>}
         </div>
       </div>
-
-      {/* Actions */}
       <div className="flex gap-2 pt-1">
-        <button
-          onClick={onCancel}
-          className="flex-1 py-3 rounded-xl bg-[#162440] text-slate-300 text-sm font-medium border border-[#1a2d4a] active:opacity-70 transition-opacity"
-        >
+        <button onClick={onCancel} className="flex-1 py-3 rounded-xl bg-[#162440] text-slate-300 text-sm font-medium border border-[#1a2d4a] active:opacity-70 transition-opacity">
           Annuler
         </button>
-        <button
-          onClick={handleSave}
-          className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold active:opacity-80 transition-all"
-        >
+        <button onClick={handleSave} className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold active:opacity-80 transition-all">
           {isEditing ? 'Enregistrer' : 'Ajouter'}
         </button>
       </div>
@@ -228,26 +360,19 @@ function RateForm({ editingYear, initialRate, existingYears, onSave, onCancel }:
   )
 }
 
-// ------------------------------------------------------------
-// Composant principal
-// ------------------------------------------------------------
+// ============================================================
+// COMPOSANT PRINCIPAL
+// ============================================================
 
 export default function Parametres() {
   const { annualRates, setRateForYear, removeRateForYear } = useSettingsStore()
-  const { clearAll } = useDaysStore()
-  const currentRate = useRateForYear(THIS_YEAR)
+  const { clearAll }   = useDaysStore()
+  const currentRate    = useRateForYear(THIS_YEAR)
 
-  // ── État du formulaire ────────────────────────────────────
-  // null = formulaire masqué, -1 = ajout, n = édition de l'année n
-  const [formMode, setFormMode] = useState<null | 'add' | number>(null)
-
-  // ── Feedback ─────────────────────────────────────────────
-  const [feedback, setFeedback] = useState<string | null>(null)
-
-  // ── Confirmation reset données ────────────────────────────
+  const [formMode,     setFormMode]     = useState<null | 'add' | number>(null)
+  const [feedback,     setFeedback]     = useState<string | null>(null)
   const [confirmReset, setConfirmReset] = useState(false)
 
-  // ── Helpers ──────────────────────────────────────────────
   function showFeedback(msg: string) {
     setFeedback(msg)
     setTimeout(() => setFeedback(null), 3000)
@@ -256,38 +381,21 @@ export default function Parametres() {
   function handleSave(year: number, rate: number) {
     setRateForYear(year, rate)
     setFormMode(null)
-    showFeedback(
-      formMode === 'add'
-        ? `Taux ${year} ajouté (${rate} %)`
-        : `Taux ${year} mis à jour (${rate} %)`
-    )
-  }
-
-  function handleDelete(year: number) {
-    removeRateForYear(year)
-    showFeedback(`Taux ${year} supprimé`)
-  }
-
-  function handleEdit(rate: AnnualRate) {
-    setFormMode(rate.year)
+    showFeedback(formMode === 'add' ? `Taux ${year} ajouté (${rate} %)` : `Taux ${year} mis à jour (${rate} %)`)
   }
 
   function handleResetAll() {
     clearAll()
     setConfirmReset(false)
-    showFeedback('Toutes les journées ont été supprimées')
+    showFeedback('Cache local vidé')
   }
 
-  // ── Rates triés par année décroissante ────────────────────
-  const sortedRates = [...annualRates].sort((a, b) => b.year - a.year)
+  const sortedRates  = [...annualRates].sort((a, b) => b.year - a.year)
   const existingYears = annualRates.map((r) => r.year)
-
-  // Taux initial pour le formulaire d'édition
-  const editingRate = typeof formMode === 'number'
+  const editingRate   = typeof formMode === 'number'
     ? (annualRates.find((r) => r.year === formMode)?.referenceRatePercent ?? DEFAULT_REFERENCE_RATE_PERCENT)
     : DEFAULT_REFERENCE_RATE_PERCENT
 
-  // ── Rendu ─────────────────────────────────────────────────
   return (
     <div className="space-y-5">
 
@@ -297,13 +405,23 @@ export default function Parametres() {
         <p className="text-slate-500 text-sm mt-0.5">Configuration de MANITO</p>
       </div>
 
-      {/* ── Feedback ───────────────────────────────────────── */}
+      {/* ── Feedback global ────────────────────────────────── */}
       {feedback && (
         <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-3.5 flex items-center gap-3">
           <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
           <p className="text-emerald-300 text-sm">{feedback}</p>
         </div>
       )}
+
+      {/* ══════════════════════════════════════════════════════
+          SECTION COMPTE — tout en haut, avant les taux
+      ══════════════════════════════════════════════════════ */}
+      <div>
+        <p className="text-slate-500 text-xs uppercase tracking-widest font-medium mb-3 px-1">
+          Compte
+        </p>
+        <AccountSection onFeedback={showFeedback} />
+      </div>
 
       {/* ── Carte résumé taux actuel ────────────────────────── */}
       <div className="bg-blue-600/10 border border-blue-500/25 rounded-2xl px-4 py-3.5 flex items-center justify-between">
@@ -341,16 +459,14 @@ export default function Parametres() {
           )}
         </div>
 
-        {/* Note explicative */}
         <div className="flex items-start gap-2 bg-[#080d1a] border border-[#1a2d4a] rounded-xl px-3 py-2.5 mb-3">
           <Info size={12} className="text-slate-600 mt-0.5 shrink-0" />
           <p className="text-slate-600 text-[11px] leading-relaxed">
             Chaque journée utilise le taux configuré pour son année.
-            Si aucun taux n'est défini pour une année, la valeur par défaut ({DEFAULT_REFERENCE_RATE_PERCENT} %) s'applique.
+            Si aucun taux n'est défini, la valeur par défaut ({DEFAULT_REFERENCE_RATE_PERCENT} %) s'applique.
           </p>
         </div>
 
-        {/* Formulaire ajout / édition */}
         {formMode !== null && (
           <div className="mb-3">
             <RateForm
@@ -363,20 +479,17 @@ export default function Parametres() {
           </div>
         )}
 
-        {/* Liste des taux */}
         <div className="bg-[#0e1628] border border-[#1a2d4a] rounded-2xl px-4">
           {sortedRates.length === 0 ? (
-            <p className="text-slate-600 text-sm py-4 text-center">
-              Aucun taux configuré.
-            </p>
+            <p className="text-slate-600 text-sm py-4 text-center">Aucun taux configuré.</p>
           ) : (
             sortedRates.map((r) => (
               <RateRow
                 key={r.year}
                 rate={r}
                 isCurrentYear={r.year === THIS_YEAR}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
+                onEdit={(rate) => setFormMode(rate.year)}
+                onDelete={(year) => { removeRateForYear(year); showFeedback(`Taux ${year} supprimé`) }}
               />
             ))
           )}
@@ -390,7 +503,6 @@ export default function Parametres() {
         </p>
         <div className="bg-[#0e1628] border border-[#1a2d4a] rounded-2xl px-4">
 
-          {/* Version */}
           <div className="flex items-center justify-between py-3.5 border-b border-[#1a2d4a]">
             <div className="flex items-center gap-3">
               <div className="bg-[#162440] p-2 rounded-xl">
@@ -398,62 +510,54 @@ export default function Parametres() {
               </div>
               <span className="text-white text-sm font-medium">À propos de MANITO</span>
             </div>
-            <span className="text-slate-500 text-xs">v0.6.0</span>
+            <span className="text-slate-500 text-xs">v0.9.0</span>
           </div>
 
-          {/* Confidentialité */}
           <div className="flex items-center justify-between py-3.5 border-b border-[#1a2d4a]">
             <div className="flex items-center gap-3">
               <div className="bg-[#162440] p-2 rounded-xl">
                 <Shield size={14} className="text-slate-400" />
               </div>
               <div>
-                <p className="text-white text-sm font-medium">Données locales</p>
+                <p className="text-white text-sm font-medium">Données synchronisées</p>
                 <p className="text-slate-600 text-[11px] mt-0.5">
-                  Toutes les données restent sur votre appareil
+                  Vos journées sont sauvegardées sur votre compte
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Zone de danger — Réinitialiser */}
+          {/* Zone danger — vider le cache local */}
           <div className="py-3.5">
             {confirmReset ? (
               <div className="space-y-3">
                 <div className="flex items-start gap-2">
                   <AlertCircle size={14} className="text-red-400 mt-0.5 shrink-0" />
                   <p className="text-red-300 text-sm">
-                    Supprimer <span className="font-bold">toutes</span> les journées ?
-                    Cette action est irréversible.
+                    Vider le cache local ? Vos données Supabase restent intactes.
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => setConfirmReset(false)}
-                    className="flex-1 py-2.5 rounded-xl bg-[#162440] text-slate-300 text-sm font-medium border border-[#1a2d4a] active:opacity-70"
-                  >
+                  <button onClick={() => setConfirmReset(false)}
+                    className="flex-1 py-2.5 rounded-xl bg-[#162440] text-slate-300 text-sm font-medium border border-[#1a2d4a] active:opacity-70">
                     Annuler
                   </button>
-                  <button
-                    onClick={handleResetAll}
-                    className="flex-1 py-2.5 rounded-xl bg-red-600/80 text-white text-sm font-semibold active:opacity-70"
-                  >
-                    Tout supprimer
+                  <button onClick={handleResetAll}
+                    className="flex-1 py-2.5 rounded-xl bg-red-600/80 text-white text-sm font-semibold active:opacity-70">
+                    Vider
                   </button>
                 </div>
               </div>
             ) : (
-              <button
-                onClick={() => setConfirmReset(true)}
-                className="w-full flex items-center gap-3 active:opacity-70 transition-opacity"
-              >
+              <button onClick={() => setConfirmReset(true)}
+                className="w-full flex items-center gap-3 active:opacity-70 transition-opacity">
                 <div className="bg-red-500/10 p-2 rounded-xl">
                   <X size={14} className="text-red-400" />
                 </div>
                 <div className="text-left">
-                  <p className="text-red-400 text-sm font-medium">Réinitialiser les données</p>
+                  <p className="text-red-400 text-sm font-medium">Vider le cache local</p>
                   <p className="text-slate-600 text-[11px] mt-0.5">
-                    Supprimer toutes les journées enregistrées
+                    Les données Supabase ne sont pas affectées
                   </p>
                 </div>
               </button>
@@ -463,7 +567,7 @@ export default function Parametres() {
       </div>
 
       <p className="text-center text-slate-700 text-xs pb-2">
-        MANITO — Suivi conducteur · v0.6.0
+        MANITO — Suivi conducteur · v0.9.0
       </p>
 
     </div>

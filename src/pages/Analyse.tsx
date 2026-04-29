@@ -1,111 +1,163 @@
-import { BarChart2, TrendingUp, PieChart, Calendar } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 
-// Carte de graphique placeholder
-interface ChartPlaceholderProps {
-  title: string
-  subtitle: string
-  icon: React.ReactNode
-  height?: string
-}
+import { useDaysStore }    from '../store/useDaysStore'
+import { useRateForYear }  from '../store/useSettingsStore'
+import { calcDayStats, calcMonthStats } from '../lib/calculations'
+import {
+  currentMonthKey,
+  prevMonthKey,
+  nextMonthKey,
+  formatMonthKey,
+  isCurrentOrFutureMonth,
+} from '../lib/dateUtils'
 
-function ChartPlaceholder({ title, subtitle, icon, height = 'h-36' }: ChartPlaceholderProps) {
-  return (
-    <div className="bg-[#0e1628] border border-[#1a2d4a] rounded-2xl p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-white font-semibold text-sm">{title}</p>
-          <p className="text-slate-500 text-xs mt-0.5">{subtitle}</p>
-        </div>
-        <div className="bg-[#162440] p-2.5 rounded-xl text-slate-400">
-          {icon}
-        </div>
-      </div>
-      {/* Zone graphique placeholder */}
-      <div className={`${height} rounded-xl bg-[#080d1a] border border-[#1a2d4a] flex flex-col items-center justify-center gap-2`}>
-        <div className="text-slate-700">{icon}</div>
-        <p className="text-slate-600 text-xs">Disponible en Phase 3</p>
-      </div>
-    </div>
-  )
-}
+import AnalysisSummary    from '../components/analysis/AnalysisSummary'
+import MonthlyRateChart   from '../components/analysis/MonthlyRateChart'
+import GapEvolutionChart  from '../components/analysis/GapEvolutionChart'
+import DrivingWorkChart   from '../components/analysis/DrivingWorkChart'
+import AmplitudeChart     from '../components/analysis/AmplitudeChart'
+import DayRankingCard     from '../components/analysis/DayRankingCard'
 
-// Résumé statistique rapide
-interface StatRowProps {
+// ------------------------------------------------------------
+// Type partagé — point de données pour tous les graphiques
+// Exporté pour être importé dans chaque composant enfant.
+// ------------------------------------------------------------
+
+export interface ChartDataPoint {
+  /** Libellé axe X — numéro du jour, ex. "1", "14" */
   label: string
-  value: string
-  color?: string
+  /** Date ISO complète — "2026-04-14" */
+  dateISO: string
+  /** TxService en % */
+  txService: number
+  /** Écart en minutes (signé) */
+  gapMins: number
+  /** Conduite en minutes */
+  drivingMins: number
+  /** Travail annexe en minutes */
+  workMins: number
+  /** Service total en minutes */
+  serviceMins: number
+  /** Amplitude en minutes (null si non calculable) */
+  amplitudeMins: number | null
+  /** TxAmp en % (null si non calculable) */
+  amplitudeRatePercent: number | null
 }
 
-function StatRow({ label, value, color = 'text-white' }: StatRowProps) {
-  return (
-    <div className="flex items-center justify-between py-2.5 border-b border-[#1a2d4a] last:border-0">
-      <span className="text-slate-400 text-sm">{label}</span>
-      <span className={`text-sm font-bold ${color}`}>{value}</span>
-    </div>
-  )
-}
+// ------------------------------------------------------------
+// Composant principal
+// ------------------------------------------------------------
 
 export default function Analyse() {
+  const { days } = useDaysStore()
+
+  // ── Sélecteur de mois ─────────────────────────────────────
+  const [monthKey, setMonthKey] = useState(currentMonthKey())
+  const canGoNext  = !isCurrentOrFutureMonth(monthKey)
+  const monthLabel = formatMonthKey(monthKey)
+  const monthYear  = parseInt(monthKey.slice(0, 4), 10)
+
+  // ── Taux de référence de l'année affichée ─────────────────
+  const referenceRatePercent = useRateForYear(monthYear)
+
+  // ── Journées du mois (triées par date croissante) ─────────
+  const monthEntries = useMemo(
+    () =>
+      days
+        .filter((d) => d.date.startsWith(monthKey))
+        .sort((a, b) => a.date.localeCompare(b.date)),
+    [days, monthKey]
+  )
+
+  // ── Stats mensuelles agrégées ─────────────────────────────
+  const monthStats = useMemo(
+    () => calcMonthStats(monthEntries, referenceRatePercent),
+    [monthEntries, referenceRatePercent]
+  )
+
+  // ── Points de données pour les graphiques ─────────────────
+  const chartData = useMemo<ChartDataPoint[]>(
+    () =>
+      monthEntries.map((entry) => {
+        const s = calcDayStats(entry, referenceRatePercent)
+        return {
+          label:               String(parseInt(entry.date.slice(8), 10)), // "01" → "1"
+          dateISO:             entry.date,
+          txService:           parseFloat(s.serviceRatePercent.toFixed(2)),
+          gapMins:             s.gapMins,
+          drivingMins:         entry.drivingMins,
+          workMins:            entry.workMins,
+          serviceMins:         s.serviceMins,
+          amplitudeMins:       s.amplitudeMins,
+          amplitudeRatePercent: s.amplitudeRatePercent,
+        }
+      }),
+    [monthEntries, referenceRatePercent]
+  )
+
+  // ── Rendu ─────────────────────────────────────────────────
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
 
-      {/* Titre */}
-      <div>
-        <h2 className="text-white text-xl font-bold">Analyse</h2>
-        <p className="text-slate-500 text-sm mt-0.5">Visualisez vos performances</p>
-      </div>
-
-      {/* Sélecteur de période (placeholder) */}
-      <div className="flex gap-2">
-        {['Semaine', 'Mois', 'Année'].map((p, i) => (
-          <button
-            key={p}
-            className={`flex-1 py-2.5 rounded-xl text-xs font-medium border transition-all ${
-              i === 1
-                ? 'bg-blue-600/20 border-blue-500/40 text-blue-300'
-                : 'bg-[#0e1628] border-[#1a2d4a] text-slate-500'
-            }`}
-          >
-            {p}
-          </button>
-        ))}
-      </div>
-
-      {/* Graphiques placeholder */}
-      <ChartPlaceholder
-        title="Taux journalier"
-        subtitle="Évolution sur le mois"
-        icon={<TrendingUp size={18} />}
-        height="h-40"
-      />
-
-      <ChartPlaceholder
-        title="Répartition du temps"
-        subtitle="Conduite vs. annexe"
-        icon={<PieChart size={18} />}
-        height="h-32"
-      />
-
-      {/* Stats résumé */}
-      <div className="bg-[#0e1628] border border-[#1a2d4a] rounded-2xl p-4">
-        <div className="flex items-center gap-2 mb-4">
-          <Calendar size={15} className="text-slate-400" />
-          <p className="text-white font-semibold text-sm">Statistiques du mois</p>
+      {/* ── Titre ──────────────────────────────────────────── */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-white text-xl font-bold">Analyse</h2>
+          <p className="text-slate-500 text-sm mt-0.5 capitalize">{monthLabel}</p>
         </div>
-        <StatRow label="Jours travaillés" value="0" />
-        <StatRow label="Meilleur taux journalier" value="— €" color="text-emerald-400" />
-        <StatRow label="Taux moyen journalier" value="— €" />
-        <StatRow label="Total conduite" value="0h00" />
-        <StatRow label="Amplitude moyenne" value="0h00" />
+
+        {/* Sélecteur de mois */}
+        <div className="flex items-center gap-1 bg-[#0e1628] border border-[#1a2d4a] rounded-xl px-1 py-1">
+          <button
+            onClick={() => setMonthKey(prevMonthKey(monthKey))}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#162440] transition-colors active:scale-95"
+            aria-label="Mois précédent"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <span className="text-white text-xs font-semibold px-1 tabular-nums capitalize min-w-[80px] text-center">
+            {monthLabel}
+          </span>
+          <button
+            onClick={() => canGoNext && setMonthKey(nextMonthKey(monthKey))}
+            disabled={!canGoNext}
+            className={`p-1.5 rounded-lg transition-colors active:scale-95 ${
+              canGoNext
+                ? 'text-slate-400 hover:text-white hover:bg-[#162440]'
+                : 'text-slate-700 cursor-not-allowed'
+            }`}
+            aria-label="Mois suivant"
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
       </div>
 
-      {/* Graphique mensuel placeholder */}
-      <ChartPlaceholder
-        title="Suivi mensuel"
-        subtitle="Comparaison mois par mois"
-        icon={<BarChart2 size={18} />}
-        height="h-36"
+      {/* ── Résumé clé ─────────────────────────────────────── */}
+      <AnalysisSummary
+        monthStats={monthStats}
+        chartData={chartData}
+        referenceRatePercent={referenceRatePercent}
       />
+
+      {/* ── Taux de service journalier ─────────────────────── */}
+      <MonthlyRateChart
+        data={chartData}
+        referenceRatePercent={referenceRatePercent}
+      />
+
+      {/* ── Écart journalier ──────────────────────────────── */}
+      <GapEvolutionChart data={chartData} />
+
+      {/* ── Conduite vs. travail ──────────────────────────── */}
+      <DrivingWorkChart data={chartData} />
+
+      {/* ── Amplitude ────────────────────────────────────── */}
+      <AmplitudeChart data={chartData} />
+
+      {/* ── Classement des journées ───────────────────────── */}
+      <DayRankingCard chartData={chartData} />
 
     </div>
   )
