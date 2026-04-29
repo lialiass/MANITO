@@ -19,7 +19,7 @@ export default function Layout({ children, currentPage, onNavigate }: LayoutProp
       {/* ── En-tête ─────────────────────────────────────────── */}
       <header className="sticky top-0 z-10 bg-[#080d1a]/95 backdrop-blur-sm border-b border-[#1a2d4a] px-5 py-3.5 flex items-center justify-between">
         <div>
-          <h1 className="text-white font-bold text-lg tracking-widest">MANITO</h1>
+          <h1 className="text-white font-bold text-lg tracking-widest">MANITAUX</h1>
           <p className="text-slate-500 text-[11px] -mt-0.5">Suivi conducteur</p>
         </div>
 

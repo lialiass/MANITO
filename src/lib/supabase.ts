@@ -10,7 +10,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undef
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn(
-    '[MANITO] Variables VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY manquantes.\n' +
+    '[MANITAUX] Variables VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY manquantes.\n' +
     'L\'application fonctionne en mode local uniquement jusqu\'à configuration du .env'
   )
 }

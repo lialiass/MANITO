@@ -15,8 +15,8 @@ interface AmplitudeChartProps {
   data: ChartDataPoint[]
 }
 
-// Amplitude max légale : 13h = 780 min
-const MAX_LEGAL_AMPLITUDE_MINS = 780
+// Amplitude max légale : 15h = 900 min
+const MAX_LEGAL_AMPLITUDE_MINS = 900
 
 // ── Tooltip ───────────────────────────────────────────────────
 
@@ -92,7 +92,7 @@ export default function AmplitudeChart({ data }: AmplitudeChartProps) {
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-3 h-[2px] border-t border-dashed border-red-400/60 inline-block" />
-            <span className="text-slate-500">Max légal 13h</span>
+            <span className="text-slate-500">Max légal 15h</span>
           </span>
         </div>
       </div>

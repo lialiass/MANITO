@@ -1,6 +1,7 @@
 import { Medal, TrendingDown } from 'lucide-react'
 import { minutesToReadable } from '../../lib/calculations'
 import { formatDayShort } from '../../lib/dateUtils'
+import { txServiceTextColor } from '../../lib/colors'
 import type { ChartDataPoint } from '../../pages/Analyse'
 
 interface DayRankingCardProps {
@@ -38,7 +39,7 @@ function RankRow({ rank, point, variant }: RankRowProps) {
           <p className="text-white text-sm font-semibold capitalize">
             {formatDayShort(point.dateISO)}
           </p>
-          <p className="text-slate-600 text-[10px] mt-0.5 tabular-nums">
+          <p className={`text-[10px] mt-0.5 tabular-nums ${txServiceTextColor(point.txService)}`}>
             TxService {point.txService.toFixed(1)} %
           </p>
         </div>

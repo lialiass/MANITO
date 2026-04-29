@@ -3,6 +3,7 @@ import { CheckCircle2, AlertCircle, Clock, CalendarDays, Zap } from 'lucide-reac
 import { calcDayStats, minutesToReadable } from '../lib/calculations'
 import { useDaysStore } from '../store/useDaysStore'
 import { useRateForYear } from '../store/useSettingsStore'
+import { txServiceTextColor } from '../lib/colors'
 
 // ------------------------------------------------------------
 // Helpers
@@ -202,6 +203,9 @@ export default function Saisie() {
 
   // ── Rendu ─────────────────────────────────────────────────
 
+  // Couleur TxService (seuils : <20% vert, <27% orange, ≥27% rouge)
+  const txServiceColor = stats ? txServiceTextColor(stats.serviceRatePercent) : 'text-slate-400'
+
   // Couleur et texte de l'écart
   const gapColor = stats
     ? stats.gapMins > 0
@@ -341,6 +345,7 @@ export default function Saisie() {
           <ResultLine
             label="TxService (annexe / service)"
             value={`${stats.serviceRatePercent.toFixed(2)} %`}
+            color={txServiceColor}
           />
           <ResultLine
             label="TxAmp (service / amplitude)"

@@ -1,4 +1,5 @@
 import type { MonthStats } from '../../lib/calculations'
+import { txServiceHexColor, txServiceTextColor } from '../../lib/colors'
 
 // ------------------------------------------------------------
 // Jauge circulaire (anneau SVG)
@@ -91,16 +92,9 @@ export default function MainRateCard({ monthStats, referenceRatePercent, monthLa
   const gap         = monthStats.monthlyGapMins
   const hasData     = monthStats.daysCount > 0
 
-  // Couleur dynamique basée sur l'écart
-  const gaugeColor  = !hasData       ? '#1e3560'
-    : gap > 0      ? '#10b981'  // vert  — disponible
-    : gap > -60    ? '#f59e0b'  // orange — proche limite
-    :                '#ef4444'  // rouge  — dépassement
-
-  const rateTextColor = !hasData       ? 'text-slate-600'
-    : gap > 0      ? 'text-emerald-400'
-    : gap > -60    ? 'text-amber-400'
-    :                'text-red-400'
+  // Couleur dynamique basée sur le TxService (seuils : <20% vert, <27% orange, ≥27% rouge)
+  const gaugeColor    = !hasData ? '#1e3560' : txServiceHexColor(currentRate)
+  const rateTextColor = !hasData ? 'text-slate-600' : txServiceTextColor(currentRate)
 
   // Écart en points
   const diffPts = hasData ? currentRate - referenceRatePercent : null
@@ -108,12 +102,11 @@ export default function MainRateCard({ monthStats, referenceRatePercent, monthLa
     ? `${diffPts > 0 ? '+' : ''}${diffPts.toFixed(1)} pt${Math.abs(diffPts) >= 2 ? 's' : ''}`
     : '—'
 
-  // Status textuel
-  const statusLabel = !hasData       ? 'Aucune donnée'
-    : gap > 60     ? 'Bien en avance'
-    : gap > 0      ? 'Dans les temps'
-    : gap > -60    ? 'Proche du seuil'
-    :                'Seuil dépassé'
+  // Status textuel aligné sur les seuils TxService
+  const statusLabel = !hasData          ? 'Aucune donnée'
+    : currentRate < 20  ? 'Objectif atteint'
+    : currentRate < 27  ? 'Proche du seuil'
+    :                     'Seuil dépassé'
 
   // Max jauge = 1.5 × référence
   const gaugeMax = referenceRatePercent * 1.5

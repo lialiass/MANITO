@@ -402,7 +402,7 @@ export default function Parametres() {
       {/* ── Titre ──────────────────────────────────────────── */}
       <div>
         <h2 className="text-white text-xl font-bold">Paramètres</h2>
-        <p className="text-slate-500 text-sm mt-0.5">Configuration de MANITO</p>
+        <p className="text-slate-500 text-sm mt-0.5">Configuration de MANITAUX</p>
       </div>
 
       {/* ── Feedback global ────────────────────────────────── */}
@@ -508,7 +508,7 @@ export default function Parametres() {
               <div className="bg-[#162440] p-2 rounded-xl">
                 <Info size={14} className="text-slate-400" />
               </div>
-              <span className="text-white text-sm font-medium">À propos de MANITO</span>
+              <span className="text-white text-sm font-medium">À propos de MANITAUX</span>
             </div>
             <span className="text-slate-500 text-xs">v0.9.0</span>
           </div>
@@ -567,7 +567,7 @@ export default function Parametres() {
       </div>
 
       <p className="text-center text-slate-700 text-xs pb-2">
-        MANITO — Suivi conducteur · v0.9.0
+        MANITAUX — Suivi conducteur · v0.9.0
       </p>
 
     </div>

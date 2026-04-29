@@ -1,6 +1,7 @@
 import { TrendingUp, TrendingDown, Award, Target } from 'lucide-react'
 import { minutesToReadable, type MonthStats } from '../../lib/calculations'
 import { formatDayShort } from '../../lib/dateUtils'
+import { txServiceTextColor } from '../../lib/colors'
 import type { ChartDataPoint } from '../../pages/Analyse'
 
 interface AnalysisSummaryProps {
@@ -62,7 +63,7 @@ export default function AnalysisSummary({ monthStats, chartData, referenceRatePe
         label="TxService moyen"
         value={`${monthStats.avgServiceRatePercent.toFixed(1)} %`}
         sub={`Objectif : ${referenceRatePercent} %`}
-        color={monthStats.avgServiceRatePercent >= referenceRatePercent ? 'text-emerald-400' : 'text-red-400'}
+        color={txServiceTextColor(monthStats.avgServiceRatePercent)}
         accent="bg-blue-500/10"
       />
 

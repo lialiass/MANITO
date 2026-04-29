@@ -96,7 +96,7 @@ function ForgotPasswordView({ onBack }: { onBack: () => void }) {
             <span className="text-white text-2xl font-black tracking-tight">M</span>
           </div>
           <div className="text-center">
-            <h1 className="text-white text-3xl font-black tracking-tight">MANITO</h1>
+            <h1 className="text-white text-3xl font-black tracking-tight">MANITAUX</h1>
             <p className="text-slate-500 text-sm mt-1">Suivi conducteur</p>
           </div>
         </div>
@@ -223,7 +223,7 @@ export default function Login({ onSwitchToRegister }: LoginProps) {
             <span className="text-white text-2xl font-black tracking-tight">M</span>
           </div>
           <div className="text-center">
-            <h1 className="text-white text-3xl font-black tracking-tight">MANITO</h1>
+            <h1 className="text-white text-3xl font-black tracking-tight">MANITAUX</h1>
             <p className="text-slate-500 text-sm mt-1">Suivi conducteur</p>
           </div>
         </div>
