@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 
-import Layout      from './components/layout/Layout'
-import Dashboard   from './pages/Dashboard'
-import Saisie      from './pages/Saisie'
-import Historique  from './pages/Historique'
-import Analyse     from './pages/Analyse'
-import Parametres  from './pages/Parametres'
-import Login       from './pages/Login'
-import Register    from './pages/Register'
+import Layout        from './components/layout/Layout'
+import Dashboard     from './pages/Dashboard'
+import Saisie        from './pages/Saisie'
+import Historique    from './pages/Historique'
+import Analyse       from './pages/Analyse'
+import Parametres    from './pages/Parametres'
+import Login         from './pages/Login'
+import Register      from './pages/Register'
+import ResetPassword from './pages/ResetPassword'
 
 import { useAuthStore }     from './store/useAuthStore'
 import { useDaysStore }     from './store/useDaysStore'
@@ -17,6 +18,17 @@ import { useProfileStore }  from './store/useProfileStore'
 
 // Type central de navigation — exporté pour être utilisé dans les composants enfants
 export type Page = 'dashboard' | 'saisie' | 'historique' | 'analyse' | 'parametres'
+
+// ------------------------------------------------------------
+// Détection du path de reset password
+// Calculé une fois au démarrage — stable pendant toute la session.
+// Supabase envoie le token dans le hash :
+//   /reset-password#access_token=TOKEN&type=recovery
+// onAuthStateChange (initializeAuth) consomme ce hash et ouvre
+// une session "recovery" sans quitter cette page.
+// ------------------------------------------------------------
+
+const IS_RESET_PASSWORD_PATH = window.location.pathname === '/reset-password'
 
 // ------------------------------------------------------------
 // Écran de chargement initial (vérification session Supabase)
@@ -71,15 +83,19 @@ export default function App() {
   const [authView, setAuthView] = useState<'login' | 'register'>('login')
 
   // ── Initialisation unique de l'auth Supabase ────────────
+  // Supabase consomme aussi automatiquement le hash de reset
+  // password (/reset-password#access_token=...) via ce listener.
   useEffect(() => {
     initializeAuth()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // ── Chargement des données après connexion ──────────────
-  // Se déclenche à chaque changement d'userId (connexion / switch de compte)
+  // Ignoré sur la page de reset password : l'utilisateur est
+  // temporairement authentifié via un token de récupération,
+  // pas via une vraie session — inutile de charger ses données.
   useEffect(() => {
-    if (user) {
+    if (user && !IS_RESET_PASSWORD_PATH) {
       loadDaysFromSupabase(user.id)
       loadSettingsFromSupabase(user.id)
       loadProfile(user.id)
@@ -100,6 +116,11 @@ export default function App() {
 
   // ── Splash screen pendant la vérification de session ────
   if (loading) return <SplashScreen />
+
+  // ── Page de réinitialisation du mot de passe ────────────
+  // Prioritaire sur tout le reste : on est arrivé ici via le
+  // lien email, pas via la navigation normale de l'app.
+  if (IS_RESET_PASSWORD_PATH) return <ResetPassword />
 
   // ── Flux d'authentification ──────────────────────────────
   if (!user) {

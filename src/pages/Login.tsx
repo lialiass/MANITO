@@ -1,5 +1,14 @@
+// ============================================================
+// MANITO — Page Login
+//
+// Deux vues gérées via un état local :
+//   'login'  → formulaire de connexion classique
+//   'forgot' → formulaire "Mot de passe oublié"
+// ============================================================
+
 import { useState } from 'react'
-import { Mail, Lock, AlertCircle, Loader2 } from 'lucide-react'
+import { Mail, Lock, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
+import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/useAuthStore'
 
 // ------------------------------------------------------------
@@ -11,17 +20,173 @@ interface LoginProps {
 }
 
 // ------------------------------------------------------------
-// Composant
+// Vue "Mot de passe oublié"
+// ------------------------------------------------------------
+
+function ForgotPasswordView({ onBack }: { onBack: () => void }) {
+  const [email,   setEmail]   = useState('')
+  const [error,   setError]   = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [sent,    setSent]    = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+
+    if (!email.trim()) {
+      setError('Veuillez saisir votre adresse email.')
+      return
+    }
+
+    setLoading(true)
+
+    // On appelle Supabase — le résultat est toujours ignoré
+    // pour ne jamais révéler si l'email existe ou non.
+    await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/reset-password`,
+    })
+
+    setLoading(false)
+    setSent(true)
+  }
+
+  // ── Confirmation d'envoi ─────────────────────────────────
+  if (sent) {
+    return (
+      <div className="min-h-screen bg-[#070d1f] flex flex-col items-center justify-center px-5">
+        <div className="max-w-sm w-full text-center space-y-5">
+
+          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-900/50 mx-auto">
+            <span className="text-white text-2xl font-black tracking-tight">M</span>
+          </div>
+
+          <div className="w-14 h-14 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-center mx-auto">
+            <CheckCircle2 size={24} className="text-emerald-400" />
+          </div>
+
+          <div>
+            <h2 className="text-white text-xl font-bold">Email envoyé</h2>
+            <p className="text-slate-400 text-sm mt-2 leading-relaxed">
+              Si un compte existe avec cet email, un lien de
+              réinitialisation a été envoyé. Vérifiez votre boîte mail
+              (et vos spams).
+            </p>
+          </div>
+
+          <button
+            onClick={onBack}
+            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-4 rounded-2xl text-sm transition-all active:scale-[0.98]"
+          >
+            Retour à la connexion
+          </button>
+
+        </div>
+      </div>
+    )
+  }
+
+  // ── Formulaire ────────────────────────────────────────────
+  return (
+    <div className="min-h-screen bg-[#070d1f] flex flex-col px-5">
+
+      {/* Logo */}
+      <div className="flex flex-col items-center justify-end flex-1 pb-8">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-900/50">
+            <span className="text-white text-2xl font-black tracking-tight">M</span>
+          </div>
+          <div className="text-center">
+            <h1 className="text-white text-3xl font-black tracking-tight">MANITO</h1>
+            <p className="text-slate-500 text-sm mt-1">Suivi conducteur</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Formulaire */}
+      <div className="flex-1 flex flex-col justify-start pt-6 max-w-sm w-full mx-auto">
+        <h2 className="text-white text-xl font-bold mb-1">Mot de passe oublié ?</h2>
+        <p className="text-slate-500 text-sm mb-6">
+          Saisissez votre email pour recevoir un lien de réinitialisation.
+        </p>
+
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-3.5 flex items-start gap-3 mb-4">
+            <AlertCircle size={16} className="text-red-400 shrink-0 mt-0.5" />
+            <p className="text-red-300 text-sm">{error}</p>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+
+          <div className="bg-[#0e1628] border border-[#1a2d4a] rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-2.5">
+              <Mail size={14} className="text-slate-500" />
+              <label className="text-slate-400 text-xs font-medium uppercase tracking-wider">
+                Email
+              </label>
+            </div>
+            <input
+              type="email"
+              autoComplete="email"
+              value={email}
+              placeholder="conducteur@example.com"
+              onChange={(e) => { setEmail(e.target.value); setError(null) }}
+              className="w-full bg-[#080d1a] text-white border border-[#1a2d4a] rounded-xl px-4 py-3 text-sm focus:border-blue-500/70 focus:outline-none transition-colors placeholder:text-slate-700"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-4 rounded-2xl text-sm transition-all duration-150 active:scale-[0.98] flex items-center justify-center gap-2 mt-1"
+          >
+            {loading ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Envoi…
+              </>
+            ) : (
+              'Envoyer le lien'
+            )}
+          </button>
+
+        </form>
+
+        <p className="text-center mt-6 mb-8">
+          <button
+            onClick={onBack}
+            className="text-slate-500 text-sm hover:text-slate-400 transition-colors"
+          >
+            ← Retour à la connexion
+          </button>
+        </p>
+      </div>
+
+    </div>
+  )
+}
+
+// ------------------------------------------------------------
+// Composant principal
 // ------------------------------------------------------------
 
 export default function Login({ onSwitchToRegister }: LoginProps) {
   const { signIn } = useAuthStore()
+
+  // Vue active : 'login' ou 'forgot'
+  const [view, setView] = useState<'login' | 'forgot'>('login')
 
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
   const [error,    setError]    = useState<string | null>(null)
   const [loading,  setLoading]  = useState(false)
 
+  // ── Délégation de la vue "forgot" ────────────────────────
+  if (view === 'forgot') {
+    return <ForgotPasswordView onBack={() => setView('login')} />
+  }
+
+  // ── Connexion ─────────────────────────────────────────────
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!email || !password) {
@@ -44,9 +209,10 @@ export default function Login({ onSwitchToRegister }: LoginProps) {
       )
       setLoading(false)
     }
-    // Si succès : App.tsx détecte user !== null et affiche l'app
+    // Succès → App.tsx détecte user !== null et affiche l'app
   }
 
+  // ── Vue Connexion ─────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#070d1f] flex flex-col px-5">
 
@@ -98,11 +264,21 @@ export default function Login({ onSwitchToRegister }: LoginProps) {
 
           {/* Mot de passe */}
           <div className="bg-[#0e1628] border border-[#1a2d4a] rounded-2xl p-4">
-            <div className="flex items-center gap-2 mb-2.5">
-              <Lock size={14} className="text-slate-500" />
-              <label className="text-slate-400 text-xs font-medium uppercase tracking-wider">
-                Mot de passe
-              </label>
+            <div className="flex items-center justify-between mb-2.5">
+              <div className="flex items-center gap-2">
+                <Lock size={14} className="text-slate-500" />
+                <label className="text-slate-400 text-xs font-medium uppercase tracking-wider">
+                  Mot de passe
+                </label>
+              </div>
+              {/* Lien "Mot de passe oublié ?" */}
+              <button
+                type="button"
+                onClick={() => setView('forgot')}
+                className="text-blue-400/70 text-xs hover:text-blue-400 transition-colors"
+              >
+                Oublié ?
+              </button>
             </div>
             <input
               type="password"
@@ -129,6 +305,7 @@ export default function Login({ onSwitchToRegister }: LoginProps) {
               'Se connecter'
             )}
           </button>
+
         </form>
 
         {/* Lien inscription */}
