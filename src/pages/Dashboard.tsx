@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { ChevronLeft, ChevronRight, PlusCircle, History, BarChart2, Settings } from 'lucide-react'
+import { ChevronLeft, ChevronRight, PlusCircle, History, BarChart2, Settings, Printer } from 'lucide-react'
 import { parseISO } from 'date-fns'
 import { isThisWeek } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -20,7 +20,8 @@ import {
   isCurrentOrFutureMonth,
 } from '../lib/dateUtils'
 
-import MainRateCard   from '../components/dashboard/MainRateCard'
+import MainRateCard        from '../components/dashboard/MainRateCard'
+import PrintMonthlyReport from '../components/dashboard/PrintMonthlyReport'
 import GapCard        from '../components/dashboard/GapCard'
 import TotalsCard     from '../components/dashboard/TotalsCard'
 import TodayCard      from '../components/dashboard/TodayCard'
@@ -238,7 +239,32 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             onClick={() => onNavigate('parametres')}
           />
         </div>
+
+        {/* Bouton impression — pleine largeur, sous les 4 actions */}
+        <button
+          onClick={() => window.print()}
+          disabled={monthStats.daysCount === 0}
+          className="mt-3 w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl border border-[#1a2d4a] bg-[#0e1628] text-slate-400 hover:text-slate-200 hover:border-[#243e6a] disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
+        >
+          <Printer size={17} />
+          <span className="text-[12px] font-medium">
+            Imprimer le mois
+            {monthStats.daysCount > 0 && (
+              <span className="ml-1.5 text-slate-600 font-normal capitalize">
+                · {monthLabel}
+              </span>
+            )}
+          </span>
+        </button>
       </div>
+
+      {/* ── Rapport imprimable (invisible à l'écran) ────── */}
+      <PrintMonthlyReport
+        monthLabel={monthLabel}
+        monthEntries={monthEntries}
+        monthStats={monthStats}
+        referenceRatePercent={referenceRatePercent}
+      />
 
     </div>
   )

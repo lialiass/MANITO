@@ -40,19 +40,28 @@ function ForgotPasswordView({ onBack }: { onBack: () => void }) {
 
     setLoading(true)
 
-    // On capture l'erreur pour le debug console, mais on affiche
-    // toujours le message neutre côté UI — ne jamais révéler si
-    // l'email existe ou non (sécurité anti-enumération).
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(
       email.trim(),
       { redirectTo: `${window.location.origin}/reset-password` }
     )
 
+    setLoading(false)
+
+    // 429 — rate limit : seul cas où on informe l'utilisateur d'une erreur réelle.
+    // Tous les autres cas (email inconnu, succès) affichent le message neutre
+    // pour ne jamais révéler si un compte existe (sécurité anti-enumération).
     if (resetError) {
       console.error('[MANITAUX reset password]', resetError)
+      const isRateLimit =
+        resetError.status === 429 ||
+        resetError.message.toLowerCase().includes('rate limit') ||
+        resetError.message.toLowerCase().includes('too many')
+      if (isRateLimit) {
+        setError('Trop de demandes ont été envoyées. Veuillez patienter quelques minutes avant de réessayer.')
+        return
+      }
     }
 
-    setLoading(false)
     setSent(true)
   }
 

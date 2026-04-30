@@ -136,8 +136,9 @@ export default function MainRateCard({ monthStats, referenceRatePercent, monthLa
         </span>
       </div>
 
-      {/* Jauge centrée */}
-      <div className="flex justify-center mb-5 relative z-10">
+      {/* Jauge + Logo CFTC */}
+      <div className="flex items-center justify-center gap-6 mb-5 relative z-10">
+
         <RingGauge
           value={hasData ? currentRate : 0}
           max={gaugeMax}
@@ -149,6 +150,16 @@ export default function MainRateCard({ monthStats, referenceRatePercent, monthLa
           </p>
           <p className="text-slate-600 text-[10px] uppercase tracking-wider mt-0.5">TxService</p>
         </RingGauge>
+
+        {/* Logo CFTC — à droite de la jauge */}
+        <div className="shrink-0 flex items-center justify-center">
+          <img
+            src="/cftc-logo.png"
+            alt="Logo CFTC Fédération Transports Logistiques"
+            className="w-[90px] sm:w-[120px] object-contain"
+          />
+        </div>
+
       </div>
 
       {/* Ligne de stats sous la jauge */}
