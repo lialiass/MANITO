@@ -14,6 +14,17 @@ function todayISO(): string {
 }
 
 // ------------------------------------------------------------
+// Classes partagées pour les inputs de saisie
+// (bordure complète visible, arrondi identique gauche/droite)
+// ------------------------------------------------------------
+
+const inputBase =
+  'w-full min-w-0 box-border rounded-2xl border border-[#1a3a5c] bg-[#060b16] text-white text-center py-3 text-sm focus:border-blue-500/70 focus:outline-none transition-colors'
+
+const inputError =
+  'w-full min-w-0 box-border rounded-2xl border border-red-500/60 bg-[#060b16] text-white text-center py-3 text-sm focus:outline-none transition-colors'
+
+// ------------------------------------------------------------
 // Sous-composant : saisie d'une durée (heures + minutes)
 // ------------------------------------------------------------
 
@@ -45,7 +56,7 @@ function DurationInput({
 
   return (
     <div
-      className={`w-full max-w-full overflow-hidden bg-[#0e1628] border rounded-2xl pt-4 pb-4 px-4 ${
+      className={`w-full overflow-hidden bg-[#0e1628] border rounded-2xl pt-4 pb-4 px-4 ${
         error ? 'border-red-500/50' : 'border-[#1a2d4a]'
       }`}
     >
@@ -55,14 +66,14 @@ function DurationInput({
         <p className="text-slate-400 text-xs font-medium uppercase tracking-wider truncate">{label}</p>
       </div>
 
-      {/* Buffer px-4 — isole les inputs du bord de la card */}
-      <div className="w-full overflow-hidden px-4">
+      {/* px-5 : buffer contre le bord de la card — PAS de overflow-hidden ici */}
+      <div className="w-full px-5">
         {/* 3 colonnes : [heures] [séparateur] [minutes] */}
-        <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-3 w-full">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 w-full">
 
           {/* Heures */}
-          <div className="flex flex-col items-center gap-1 min-w-0 overflow-hidden">
-            <div className="w-full min-w-0 box-border bg-[#080d1a] border border-[#1a2d4a] rounded-xl flex items-center justify-center px-2 py-3 focus-within:border-blue-500/70 transition-colors overflow-hidden">
+          <div className="flex flex-col items-center gap-1 min-w-0">
+            <div className="w-full min-w-0 box-border bg-[#060b16] border border-[#1a3a5c] rounded-2xl flex items-center justify-center px-2 py-3 focus-within:border-blue-500/70 transition-colors">
               <input
                 type="text"
                 inputMode="numeric"
@@ -77,12 +88,12 @@ function DurationInput({
             <span className="text-slate-600 text-xs">heures</span>
           </div>
 
-          {/* Séparateur — aligné sur le centre de l'input */}
-          <span className="text-slate-600 text-xl font-light mt-3.5 select-none">:</span>
+          {/* Séparateur */}
+          <span className="text-slate-600 text-xl font-light select-none">:</span>
 
           {/* Minutes */}
-          <div className="flex flex-col items-center gap-1 min-w-0 overflow-hidden">
-            <div className="w-full min-w-0 box-border bg-[#080d1a] border border-[#1a2d4a] rounded-xl flex items-center justify-center px-2 py-3 focus-within:border-blue-500/70 transition-colors overflow-hidden">
+          <div className="flex flex-col items-center gap-1 min-w-0">
+            <div className="w-full min-w-0 box-border bg-[#060b16] border border-[#1a3a5c] rounded-2xl flex items-center justify-center px-2 py-3 focus-within:border-blue-500/70 transition-colors">
               <input
                 type="text"
                 inputMode="numeric"
@@ -101,7 +112,7 @@ function DurationInput({
       </div>
 
       {error && (
-        <p className="flex items-center gap-1.5 text-red-400 text-xs mt-2.5 px-4">
+        <p className="flex items-center gap-1.5 text-red-400 text-xs mt-2.5 px-5">
           <AlertCircle size={12} />
           {error}
         </p>
@@ -249,7 +260,7 @@ export default function Saisie() {
       )}
 
       {/* ── Date ──────────────────────────────────────── */}
-      <div className={`w-full max-w-full overflow-hidden bg-[#0e1628] border rounded-2xl pt-4 pb-4 px-4 ${
+      <div className={`w-full overflow-hidden bg-[#0e1628] border rounded-2xl pt-4 pb-4 px-4 ${
         errors.date ? 'border-red-500/50' : 'border-[#1a2d4a]'
       }`}>
         <div className="flex items-center gap-2 mb-2.5">
@@ -258,24 +269,27 @@ export default function Saisie() {
             Date
           </label>
         </div>
-        <div className="w-full overflow-hidden px-4">
+
+        {/* px-5 sans overflow-hidden → bordure de l'input entièrement visible */}
+        <div className="w-full px-5">
           <input
             type="date"
             value={date}
             max={todayISO()}
             onChange={(e) => { setDate(e.target.value); setErrors(p => ({ ...p, date: '' })) }}
-            className="w-full min-w-0 max-w-full box-border bg-[#080d1a] text-white border border-[#1a2d4a] rounded-xl px-3 py-3 text-sm focus:border-blue-500/70 focus:outline-none transition-colors"
+            className={errors.date ? inputError : inputBase}
           />
         </div>
+
         {errors.date && (
-          <p className="flex items-center gap-1.5 text-red-400 text-xs mt-2 px-4">
+          <p className="flex items-center gap-1.5 text-red-400 text-xs mt-2 px-5">
             <AlertCircle size={12} />{errors.date}
           </p>
         )}
       </div>
 
       {/* ── Horaires ──────────────────────────────────── */}
-      <div className={`w-full max-w-full overflow-hidden bg-[#0e1628] border rounded-2xl pt-4 pb-4 px-4 ${
+      <div className={`w-full overflow-hidden bg-[#0e1628] border rounded-2xl pt-4 pb-4 px-4 ${
         (errors.startTime || errors.endTime) ? 'border-red-500/50' : 'border-[#1a2d4a]'
       }`}>
         <div className="flex items-center gap-2 mb-3">
@@ -283,20 +297,18 @@ export default function Saisie() {
           <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Horaires de service</p>
         </div>
 
-        {/* 2 colonnes côte à côte avec buffer px-4 contre le débordement iOS */}
-        <div className="w-full overflow-hidden px-4">
-          <div className="grid grid-cols-2 gap-3 w-full">
+        {/* px-5 sans overflow-hidden → bordures complètes des deux inputs */}
+        <div className="w-full px-5">
+          <div className="grid grid-cols-2 gap-4 w-full">
 
             {/* Prise de service */}
-            <div className="min-w-0 overflow-hidden">
+            <div className="min-w-0">
               <label className="text-slate-500 text-xs block mb-1.5">Prise de service</label>
               <input
                 type="time"
                 value={startTime}
                 onChange={(e) => { setStartTime(e.target.value); setErrors(p => ({ ...p, startTime: '' })) }}
-                className={`w-full min-w-0 max-w-full box-border bg-[#080d1a] text-white border rounded-xl px-1 py-3 text-sm focus:border-blue-500/70 focus:outline-none transition-colors ${
-                  errors.startTime ? 'border-red-500/60' : 'border-[#1a2d4a]'
-                }`}
+                className={errors.startTime ? inputError : inputBase}
               />
               {errors.startTime && (
                 <p className="text-red-400 text-[11px] mt-1 flex items-center gap-1">
@@ -306,15 +318,13 @@ export default function Saisie() {
             </div>
 
             {/* Fin de service */}
-            <div className="min-w-0 overflow-hidden">
+            <div className="min-w-0">
               <label className="text-slate-500 text-xs block mb-1.5">Fin de service</label>
               <input
                 type="time"
                 value={endTime}
                 onChange={(e) => { setEndTime(e.target.value); setErrors(p => ({ ...p, endTime: '' })) }}
-                className={`w-full min-w-0 max-w-full box-border bg-[#080d1a] text-white border rounded-xl px-1 py-3 text-sm focus:border-blue-500/70 focus:outline-none transition-colors ${
-                  errors.endTime ? 'border-red-500/60' : 'border-[#1a2d4a]'
-                }`}
+                className={errors.endTime ? inputError : inputBase}
               />
               {errors.endTime && (
                 <p className="text-red-400 text-[11px] mt-1 flex items-center gap-1">
@@ -348,7 +358,7 @@ export default function Saisie() {
 
       {/* ── Calcul live ───────────────────────────────── */}
       {stats ? (
-        <div className="w-full max-w-full overflow-hidden bg-blue-600/10 border border-blue-500/25 rounded-2xl p-4">
+        <div className="w-full overflow-hidden bg-blue-600/10 border border-blue-500/25 rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-1">
             <Zap size={13} className="text-blue-400 shrink-0" />
             <p className="text-blue-300 text-xs font-semibold uppercase tracking-wider">Calcul en direct</p>
@@ -379,7 +389,7 @@ export default function Saisie() {
           />
         </div>
       ) : (
-        <div className="w-full max-w-full overflow-hidden bg-[#0e1628] border border-[#1a2d4a] rounded-2xl p-4">
+        <div className="w-full overflow-hidden bg-[#0e1628] border border-[#1a2d4a] rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-1.5">
             <Zap size={13} className="text-slate-600 shrink-0" />
             <p className="text-slate-500 text-xs font-medium uppercase tracking-wider">Calcul en direct</p>
