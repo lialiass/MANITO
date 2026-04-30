@@ -34,7 +34,6 @@ function DurationInput({
   onMinutesChange,
   error,
 }: DurationInputProps) {
-  // Filtre : chiffres uniquement, clamp sur blur
   function handleHours(raw: string) {
     const digits = raw.replace(/\D/g, '')
     if (digits === '' || parseInt(digits, 10) <= 23) onHoursChange(digits)
@@ -46,19 +45,22 @@ function DurationInput({
 
   return (
     <div
-      className={`bg-[#0e1628] border rounded-2xl p-4 ${
+      className={`w-full max-w-full overflow-hidden bg-[#0e1628] border rounded-2xl p-4 ${
         error ? 'border-red-500/50' : 'border-[#1a2d4a]'
       }`}
     >
+      {/* Label centré */}
       <div className="flex items-center justify-center gap-2 mb-3">
-        <Clock size={14} className="text-slate-500" />
-        <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">{label}</p>
+        <Clock size={14} className="text-slate-500 shrink-0" />
+        <p className="text-slate-400 text-xs font-medium uppercase tracking-wider truncate">{label}</p>
       </div>
 
-      <div className="flex items-center justify-center gap-4">
+      {/* 3 colonnes : [heures] [séparateur] [minutes] */}
+      <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-3 w-full">
+
         {/* Heures */}
-        <div className="flex-1 flex flex-col items-center gap-1">
-          <div className="w-full bg-[#080d1a] border border-[#1a2d4a] rounded-xl flex items-center justify-center px-3 py-3 focus-within:border-blue-500/70 transition-colors">
+        <div className="flex flex-col items-center gap-1 min-w-0">
+          <div className="w-full min-w-0 bg-[#080d1a] border border-[#1a2d4a] rounded-xl flex items-center justify-center px-2 py-3 focus-within:border-blue-500/70 transition-colors overflow-hidden">
             <input
               type="text"
               inputMode="numeric"
@@ -67,18 +69,18 @@ function DurationInput({
               value={hours}
               placeholder="00"
               onChange={(e) => handleHours(e.target.value)}
-              className="w-full bg-transparent text-white text-2xl font-bold text-center focus:outline-none placeholder:text-slate-700"
+              className="w-full min-w-0 bg-transparent text-white text-2xl font-bold text-center focus:outline-none placeholder:text-slate-700"
             />
           </div>
           <span className="text-slate-600 text-xs">heures</span>
         </div>
 
-        {/* Séparateur aligné sur l'input, pas sur le label en dessous */}
-        <span className="text-slate-600 text-xl font-light self-start mt-3.5">:</span>
+        {/* Séparateur — aligné sur le centre de l'input (mt-3.5 ≈ mi-hauteur de l'input) */}
+        <span className="text-slate-600 text-xl font-light mt-3.5 select-none">:</span>
 
         {/* Minutes */}
-        <div className="flex-1 flex flex-col items-center gap-1">
-          <div className="w-full bg-[#080d1a] border border-[#1a2d4a] rounded-xl flex items-center justify-center px-3 py-3 focus-within:border-blue-500/70 transition-colors">
+        <div className="flex flex-col items-center gap-1 min-w-0">
+          <div className="w-full min-w-0 bg-[#080d1a] border border-[#1a2d4a] rounded-xl flex items-center justify-center px-2 py-3 focus-within:border-blue-500/70 transition-colors overflow-hidden">
             <input
               type="text"
               inputMode="numeric"
@@ -87,11 +89,12 @@ function DurationInput({
               value={minutes}
               placeholder="00"
               onChange={(e) => handleMinutes(e.target.value)}
-              className="w-full bg-transparent text-white text-2xl font-bold text-center focus:outline-none placeholder:text-slate-700"
+              className="w-full min-w-0 bg-transparent text-white text-2xl font-bold text-center focus:outline-none placeholder:text-slate-700"
             />
           </div>
           <span className="text-slate-600 text-xs">minutes</span>
         </div>
+
       </div>
 
       {error && (
@@ -116,9 +119,9 @@ interface ResultLineProps {
 
 function ResultLine({ label, value, color = 'text-white' }: ResultLineProps) {
   return (
-    <div className="flex items-center justify-between py-2.5 border-b border-[#1a2d4a]/70 last:border-0">
-      <span className="text-slate-400 text-sm">{label}</span>
-      <span className={`text-sm font-bold tabular-nums ${color}`}>{value}</span>
+    <div className="flex items-center justify-between py-2.5 border-b border-[#1a2d4a]/70 last:border-0 gap-2">
+      <span className="text-slate-400 text-sm min-w-0 truncate">{label}</span>
+      <span className={`text-sm font-bold tabular-nums shrink-0 ${color}`}>{value}</span>
     </div>
   )
 }
@@ -132,10 +135,8 @@ export default function Saisie() {
 
   // ── État du formulaire ────────────────────────────────────
   const [date, setDate]           = useState(todayISO())
-
-  // ── Taux de référence selon l'année de la date saisie ────
   const dateYear = parseInt(date.slice(0, 4), 10) || new Date().getFullYear()
-  const referenceRatePercent = useRateForYear(dateYear)
+  const referenceRatePercent      = useRateForYear(dateYear)
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime]     = useState('')
   const [drivingH, setDrivingH]   = useState('')
@@ -143,8 +144,8 @@ export default function Saisie() {
   const [workH, setWorkH]         = useState('')
   const [workM, setWorkM]         = useState('')
 
-  const [errors, setErrors]   = useState<Record<string, string>>({})
-  const [saved, setSaved]     = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [saved,  setSaved]  = useState(false)
 
   // ── Détection connexion Internet ─────────────────────────
   const [isOnline, setIsOnline] = useState(navigator.onLine)
@@ -165,7 +166,6 @@ export default function Saisie() {
   const workMins    = (parseInt(workH, 10) || 0) * 60 + (parseInt(workM, 10) || 0)
 
   // ── Calcul live ───────────────────────────────────────────
-  // S'active dès qu'on a les horaires ET au moins un temps de conduite
   const stats = useMemo(() => {
     if (!startTime || !endTime || drivingMins <= 0) return null
     return calcDayStats(
@@ -177,33 +177,22 @@ export default function Saisie() {
   // ── Validation ────────────────────────────────────────────
   function validate(): Record<string, string> {
     const errs: Record<string, string> = {}
-
-    if (!date)
-      errs.date = 'La date est requise'
-    if (!startTime)
-      errs.startTime = 'L\'heure de début est requise'
-    if (!endTime)
-      errs.endTime = 'L\'heure de fin est requise'
+    if (!date)      errs.date      = 'La date est requise'
+    if (!startTime) errs.startTime = 'L\'heure de début est requise'
+    if (!endTime)   errs.endTime   = 'L\'heure de fin est requise'
     if (startTime && endTime && endTime <= startTime)
       errs.endTime = 'L\'heure de fin doit être après l\'heure de début'
     if (drivingMins <= 0)
       errs.drivingMins = 'Le temps de conduite doit être supérieur à 0'
-
     return errs
   }
 
   // ── Soumission ────────────────────────────────────────────
   function handleSubmit() {
-    if (!isOnline) return   // double sécurité si le bouton est contourné
+    if (!isOnline) return
     const errs = validate()
-    if (Object.keys(errs).length > 0) {
-      setErrors(errs)
-      return
-    }
-
+    if (Object.keys(errs).length > 0) { setErrors(errs); return }
     addDay({ date, startTime, endTime, drivingMins, workMins })
-
-    // Reset du formulaire
     setDate(todayISO())
     setStartTime('')
     setEndTime('')
@@ -212,31 +201,22 @@ export default function Saisie() {
     setWorkH('')
     setWorkM('')
     setErrors({})
-
     setSaved(true)
     setTimeout(() => setSaved(false), 3500)
   }
 
-  // ── Rendu ─────────────────────────────────────────────────
-
-  // Couleur TxService (seuils : <20% vert, <27% orange, ≥27% rouge)
+  // ── Couleurs ──────────────────────────────────────────────
   const txServiceColor = stats ? txServiceTextColor(stats.serviceRatePercent) : 'text-slate-400'
-
-  // Couleur et texte de l'écart
   const gapColor = stats
-    ? stats.gapMins > 0
-      ? 'text-emerald-400'
-      : stats.gapMins < 0
-        ? 'text-red-400'
-        : 'text-slate-400'
+    ? stats.gapMins > 0 ? 'text-emerald-400' : stats.gapMins < 0 ? 'text-red-400' : 'text-slate-400'
     : 'text-slate-400'
-
   const gapDisplay = stats
     ? `${stats.gapSign === '+' ? '+' : ''}${minutesToReadable(stats.gapMins)}`
     : '—'
 
+  // ── Rendu ─────────────────────────────────────────────────
   return (
-    <div className="space-y-4">
+    <div className="w-full space-y-4">
 
       {/* Titre */}
       <div>
@@ -248,7 +228,7 @@ export default function Saisie() {
       {!isOnline && (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-start gap-3">
           <WifiOff size={18} className="text-amber-400 shrink-0 mt-0.5" />
-          <div>
+          <div className="min-w-0">
             <p className="text-amber-300 text-sm font-semibold">Connexion Internet requise</p>
             <p className="text-amber-400/70 text-xs mt-0.5">
               Vous devez être connecté à Internet pour enregistrer vos données.
@@ -266,9 +246,11 @@ export default function Saisie() {
       )}
 
       {/* ── Date ──────────────────────────────────────── */}
-      <div className={`bg-[#0e1628] border rounded-2xl p-4 ${errors.date ? 'border-red-500/50' : 'border-[#1a2d4a]'}`}>
+      <div className={`w-full max-w-full overflow-hidden bg-[#0e1628] border rounded-2xl p-4 ${
+        errors.date ? 'border-red-500/50' : 'border-[#1a2d4a]'
+      }`}>
         <div className="flex items-center gap-2 mb-2.5">
-          <CalendarDays size={14} className="text-slate-500" />
+          <CalendarDays size={14} className="text-slate-500 shrink-0" />
           <label className="text-slate-400 text-xs font-medium uppercase tracking-wider">
             Date
           </label>
@@ -278,7 +260,7 @@ export default function Saisie() {
           value={date}
           max={todayISO()}
           onChange={(e) => { setDate(e.target.value); setErrors(p => ({ ...p, date: '' })) }}
-          className="w-full bg-[#080d1a] text-white border border-[#1a2d4a] rounded-xl px-4 py-3 text-sm focus:border-blue-500/70 focus:outline-none transition-colors"
+          className="w-full min-w-0 max-w-full bg-[#080d1a] text-white border border-[#1a2d4a] rounded-xl px-4 py-3 text-sm focus:border-blue-500/70 focus:outline-none transition-colors"
         />
         {errors.date && (
           <p className="flex items-center gap-1.5 text-red-400 text-xs mt-2">
@@ -288,23 +270,25 @@ export default function Saisie() {
       </div>
 
       {/* ── Horaires ──────────────────────────────────── */}
-      <div className={`bg-[#0e1628] border rounded-2xl p-4 ${
+      <div className={`w-full max-w-full overflow-hidden bg-[#0e1628] border rounded-2xl p-4 ${
         (errors.startTime || errors.endTime) ? 'border-red-500/50' : 'border-[#1a2d4a]'
       }`}>
         <div className="flex items-center gap-2 mb-3">
-          <Clock size={14} className="text-slate-500" />
+          <Clock size={14} className="text-slate-500 shrink-0" />
           <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Horaires de service</p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3">
-          {/* Début */}
-          <div className="flex-1 min-w-0">
+        {/* 2 colonnes côte à côte — min-w-0 pour contenir les inputs time iOS */}
+        <div className="grid grid-cols-2 gap-3 w-full">
+
+          {/* Prise de service */}
+          <div className="min-w-0">
             <label className="text-slate-500 text-xs block mb-1.5">Prise de service</label>
             <input
               type="time"
               value={startTime}
               onChange={(e) => { setStartTime(e.target.value); setErrors(p => ({ ...p, startTime: '' })) }}
-              className={`w-full bg-[#080d1a] text-white border rounded-xl px-3 py-3 text-sm focus:border-blue-500/70 focus:outline-none transition-colors ${
+              className={`w-full min-w-0 max-w-full bg-[#080d1a] text-white border rounded-xl px-2 py-3 text-sm focus:border-blue-500/70 focus:outline-none transition-colors ${
                 errors.startTime ? 'border-red-500/60' : 'border-[#1a2d4a]'
               }`}
             />
@@ -315,14 +299,14 @@ export default function Saisie() {
             )}
           </div>
 
-          {/* Fin */}
-          <div className="flex-1 min-w-0">
+          {/* Fin de service */}
+          <div className="min-w-0">
             <label className="text-slate-500 text-xs block mb-1.5">Fin de service</label>
             <input
               type="time"
               value={endTime}
               onChange={(e) => { setEndTime(e.target.value); setErrors(p => ({ ...p, endTime: '' })) }}
-              className={`w-full bg-[#080d1a] text-white border rounded-xl px-3 py-3 text-sm focus:border-blue-500/70 focus:outline-none transition-colors ${
+              className={`w-full min-w-0 max-w-full bg-[#080d1a] text-white border rounded-xl px-2 py-3 text-sm focus:border-blue-500/70 focus:outline-none transition-colors ${
                 errors.endTime ? 'border-red-500/60' : 'border-[#1a2d4a]'
               }`}
             />
@@ -332,6 +316,7 @@ export default function Saisie() {
               </p>
             )}
           </div>
+
         </div>
       </div>
 
@@ -356,17 +341,14 @@ export default function Saisie() {
 
       {/* ── Calcul live ───────────────────────────────── */}
       {stats ? (
-        <div className="bg-blue-600/10 border border-blue-500/25 rounded-2xl p-4">
+        <div className="w-full max-w-full overflow-hidden bg-blue-600/10 border border-blue-500/25 rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-1">
-            <Zap size={13} className="text-blue-400" />
+            <Zap size={13} className="text-blue-400 shrink-0" />
             <p className="text-blue-300 text-xs font-semibold uppercase tracking-wider">Calcul en direct</p>
           </div>
           <p className="text-slate-500 text-[11px] mb-3">Taux de référence : {referenceRatePercent} %</p>
 
-          <ResultLine
-            label="Temps de service"
-            value={minutesToReadable(stats.serviceMins)}
-          />
+          <ResultLine label="Temps de service"   value={minutesToReadable(stats.serviceMins)} />
           <ResultLine
             label="Amplitude"
             value={stats.amplitudeMins !== null ? minutesToReadable(stats.amplitudeMins) : '—'}
@@ -378,10 +360,9 @@ export default function Saisie() {
           />
           <ResultLine
             label="TxAmp"
-            value={
-              stats.amplitudeRatePercent !== null
-                ? `${stats.amplitudeRatePercent.toFixed(2)} %`
-                : '—'
+            value={stats.amplitudeRatePercent !== null
+              ? `${stats.amplitudeRatePercent.toFixed(2)} %`
+              : '—'
             }
           />
           <ResultLine
@@ -391,9 +372,9 @@ export default function Saisie() {
           />
         </div>
       ) : (
-        <div className="bg-[#0e1628] border border-[#1a2d4a] rounded-2xl p-4">
+        <div className="w-full max-w-full overflow-hidden bg-[#0e1628] border border-[#1a2d4a] rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-1.5">
-            <Zap size={13} className="text-slate-600" />
+            <Zap size={13} className="text-slate-600 shrink-0" />
             <p className="text-slate-500 text-xs font-medium uppercase tracking-wider">Calcul en direct</p>
           </div>
           <p className="text-slate-600 text-sm">
