@@ -1,5 +1,5 @@
 import type { MonthStats } from '../../lib/calculations'
-import { txServiceHexColor, txServiceTextColor } from '../../lib/colors'
+import { txServiceOptimalHexColor, txServiceOptimalTextColor } from '../../lib/colors'
 
 // ------------------------------------------------------------
 // Jauge circulaire (anneau SVG)
@@ -91,9 +91,9 @@ export default function MainRateCard({ monthStats, referenceRatePercent, monthLa
   const currentRate = monthStats.avgServiceRatePercent
   const hasData     = monthStats.daysCount > 0
 
-  // Couleur dynamique basée sur le TxService (seuils : <20% vert, <27% orange, ≥27% rouge)
-  const gaugeColor    = !hasData ? '#1e3560' : txServiceHexColor(currentRate)
-  const rateTextColor = !hasData ? 'text-slate-600' : txServiceTextColor(currentRate)
+  // Couleur dynamique basée sur les seuils "sweet spot" (18–20 % optimal)
+  const gaugeColor    = !hasData ? '#1e3560' : txServiceOptimalHexColor(currentRate)
+  const rateTextColor = !hasData ? 'text-slate-600' : txServiceOptimalTextColor(currentRate)
 
   // Écart en points
   const diffPts = hasData ? currentRate - referenceRatePercent : null
@@ -101,10 +101,12 @@ export default function MainRateCard({ monthStats, referenceRatePercent, monthLa
     ? `${diffPts > 0 ? '+' : ''}${diffPts.toFixed(1)} pt${Math.abs(diffPts) >= 2 ? 's' : ''}`
     : '—'
 
-  // Status textuel aligné sur les seuils TxService
-  const statusLabel = !hasData          ? 'Aucune donnée'
-    : currentRate < 20  ? 'Objectif atteint'
-    : currentRate < 27  ? 'Proche du seuil'
+  // Statut textuel aligné sur les seuils sweet-spot
+  const statusLabel = !hasData               ? 'Aucune donnée'
+    : currentRate < 14  ? 'Trop bas'
+    : currentRate < 18  ? 'En deçà de l\'objectif'
+    : currentRate <= 20 ? 'Objectif atteint'
+    : currentRate <= 26 ? 'Au-dessus de l\'objectif'
     :                     'Seuil dépassé'
 
   // Max jauge = 1.5 × référence

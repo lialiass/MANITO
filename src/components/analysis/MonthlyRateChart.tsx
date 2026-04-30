@@ -15,6 +15,33 @@ interface MonthlyRateChartProps {
   referenceRatePercent:  number
 }
 
+// ── Composant légende — grille fixe [trait | texte] ──────────
+// grid-cols-[28px_1fr] : trait toujours à la même position X,
+// texte toujours aligné au même point de départ.
+
+function LegendItem({
+  colorClass,
+  label,
+  dashed = false,
+}: {
+  colorClass: string
+  label: string
+  dashed?: boolean
+}) {
+  return (
+    <div className="grid grid-cols-[28px_1fr] items-center gap-2">
+      <span
+        className={[
+          'block w-7 h-0 border-t-2',
+          dashed ? 'border-dashed' : 'border-solid',
+          colorClass,
+        ].join(' ')}
+      />
+      <span className="text-slate-500 text-[10px] whitespace-nowrap">{label}</span>
+    </div>
+  )
+}
+
 // ── Tooltip personnalisé ──────────────────────────────────────
 
 function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) {
@@ -45,23 +72,20 @@ export default function MonthlyRateChart({ data, referenceRatePercent }: Monthly
     ? Math.ceil(Math.max(...data.map((d) => d.txService), referenceRatePercent) / 5) * 5 + 5
     : 40
 
+  // Afficher uniquement les jours pairs (2, 4, 6…) sur l'axe X
+  const evenTicks = data.filter((_, i) => i % 2 === 1).map((d) => d.label)
+
   return (
-    <div className="bg-[#0e1628] border border-[#1a2d4a] rounded-2xl p-4">
+    <div className="bg-[#0e1628] border border-[#162030] rounded-2xl p-4">
       {/* En-tête */}
       <div className="flex items-start justify-between mb-3">
         <div>
           <p className="text-white font-semibold text-sm">Taux de service journalier</p>
           <p className="text-slate-500 text-xs mt-0.5">TxService % — jour par jour</p>
         </div>
-        <div className="flex flex-col items-end gap-1 text-[10px]">
-          <span className="flex items-center gap-1.5">
-            <span className="w-3 h-[2px] bg-blue-400 inline-block rounded-full" />
-            <span className="text-slate-500">Réel</span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-3 h-[2px] border-t border-dashed border-amber-400 inline-block" />
-            <span className="text-slate-500">Objectif {referenceRatePercent} %</span>
-          </span>
+        <div className="flex flex-col gap-2">
+          <LegendItem colorClass="border-blue-400"  label="Réel" />
+          <LegendItem colorClass="border-amber-400" label={`Objectif ${referenceRatePercent} %`} dashed />
         </div>
       </div>
 
@@ -69,7 +93,7 @@ export default function MonthlyRateChart({ data, referenceRatePercent }: Monthly
         <EmptyState />
       ) : (
         <ResponsiveContainer width="100%" height={180}>
-          <AreaChart data={data} margin={{ top: 6, right: 4, left: -12, bottom: 0 }}>
+          <AreaChart data={data} margin={{ top: 6, right: 4, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="gradTxService" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.3} />
@@ -77,13 +101,10 @@ export default function MonthlyRateChart({ data, referenceRatePercent }: Monthly
               </linearGradient>
             </defs>
 
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="#1a2d4a"
-              vertical={false}
-            />
+            <CartesianGrid strokeDasharray="3 3" stroke="#142035" vertical={false} />
             <XAxis
               dataKey="label"
+              ticks={evenTicks}
               tick={{ fill: '#475569', fontSize: 10 }}
               axisLine={false}
               tickLine={false}
@@ -94,11 +115,10 @@ export default function MonthlyRateChart({ data, referenceRatePercent }: Monthly
               axisLine={false}
               tickLine={false}
               tickFormatter={(v: number) => `${v}%`}
-              width={34}
+              width={36}
             />
             <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#1e3560', strokeWidth: 1 }} />
 
-            {/* Ligne objectif */}
             <ReferenceLine
               y={referenceRatePercent}
               stroke="#f59e0b"

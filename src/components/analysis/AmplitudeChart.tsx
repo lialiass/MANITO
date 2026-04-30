@@ -15,8 +15,36 @@ interface AmplitudeChartProps {
   data: ChartDataPoint[]
 }
 
-// Amplitude max légale : 15h = 900 min
-const MAX_LEGAL_AMPLITUDE_MINS = 900
+// Seuils réglementaires
+const RECOMMENDED_AMPLITUDE_MINS = 780   // 13h — recommandé (santé)
+const MAX_LEGAL_AMPLITUDE_MINS   = 900   // 15h — max légal
+
+// ── Composant légende — grille fixe [trait | texte] ──────────
+// grid-cols-[28px_1fr] : trait toujours à la même position X,
+// texte toujours aligné au même point de départ.
+
+function LegendItem({
+  colorClass,
+  label,
+  dashed = false,
+}: {
+  colorClass: string
+  label: string
+  dashed?: boolean
+}) {
+  return (
+    <div className="grid grid-cols-[28px_1fr] items-center gap-2">
+      <span
+        className={[
+          'block w-7 h-0 border-t-2',
+          dashed ? 'border-dashed' : 'border-solid',
+          colorClass,
+        ].join(' ')}
+      />
+      <span className="text-slate-500 text-[10px] whitespace-nowrap">{label}</span>
+    </div>
+  )
+}
 
 // ── Tooltip ───────────────────────────────────────────────────
 
@@ -31,7 +59,6 @@ function CustomTooltip({
 }) {
   if (!active || !payload?.length) return null
   const val = payload[0]?.value ?? null
-
   return (
     <div className="bg-[#0d1526] border border-[#1e3560] rounded-xl px-3 py-2 text-xs shadow-xl">
       <p className="text-slate-400 mb-0.5">Jour {label}</p>
@@ -63,10 +90,8 @@ function EmptyState() {
 // ── Composant principal ──────────────────────────────────────
 
 export default function AmplitudeChart({ data }: AmplitudeChartProps) {
-  // Filtrer les données avec amplitude nulle (journées sans horaires complets)
   const hasAmpData = data.some((d) => d.amplitudeMins !== null)
 
-  // Données adaptées : null → 0 pour recharts (on affichera null comme absent)
   const chartData = data.map((d) => ({
     ...d,
     amplitudeMins: d.amplitudeMins ?? 0,
@@ -77,23 +102,22 @@ export default function AmplitudeChart({ data }: AmplitudeChartProps) {
     : MAX_LEGAL_AMPLITUDE_MINS
   const yMax = Math.ceil(maxAmp / 60) * 60 + 60
 
+  // Afficher uniquement les jours pairs (2, 4, 6…) sur l'axe X
+  const evenTicks = data.filter((_, i) => i % 2 === 1).map((d) => d.label)
+
   return (
-    <div className="bg-[#0e1628] border border-[#1a2d4a] rounded-2xl p-4">
+    <div className="bg-[#0e1628] border border-[#162030] rounded-2xl p-4">
       {/* En-tête */}
       <div className="flex items-start justify-between mb-3">
         <div>
           <p className="text-white font-semibold text-sm">Amplitude journalière</p>
           <p className="text-slate-500 text-xs mt-0.5">Durée entre prise et fin de service</p>
         </div>
-        <div className="flex flex-col items-end gap-1 text-[10px]">
-          <span className="flex items-center gap-1.5">
-            <span className="w-3 h-[2px] bg-cyan-400 inline-block rounded-full" />
-            <span className="text-slate-500">Amplitude</span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-3 h-[2px] border-t border-dashed border-red-400/60 inline-block" />
-            <span className="text-slate-500">Max légal 15h</span>
-          </span>
+        {/* Légende — grille fixe pour alignement parfait */}
+        <div className="flex flex-col gap-2">
+          <LegendItem colorClass="border-cyan-400"  label="Amplitude" />
+          <LegendItem colorClass="border-amber-400" label="Recommandé 13h" dashed />
+          <LegendItem colorClass="border-red-400"   label="Max légal 15h"  dashed />
         </div>
       </div>
 
@@ -101,7 +125,7 @@ export default function AmplitudeChart({ data }: AmplitudeChartProps) {
         <EmptyState />
       ) : (
         <ResponsiveContainer width="100%" height={165}>
-          <AreaChart data={chartData} margin={{ top: 6, right: 4, left: -10, bottom: 0 }}>
+          <AreaChart data={chartData} margin={{ top: 6, right: 4, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="gradAmplitude" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%"  stopColor="#06b6d4" stopOpacity={0.25} />
@@ -109,9 +133,10 @@ export default function AmplitudeChart({ data }: AmplitudeChartProps) {
               </linearGradient>
             </defs>
 
-            <CartesianGrid strokeDasharray="3 3" stroke="#1a2d4a" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#142035" vertical={false} />
             <XAxis
               dataKey="label"
+              ticks={evenTicks}
               tick={{ fill: '#475569', fontSize: 10 }}
               axisLine={false}
               tickLine={false}
@@ -122,11 +147,19 @@ export default function AmplitudeChart({ data }: AmplitudeChartProps) {
               axisLine={false}
               tickLine={false}
               tickFormatter={yFormatter}
-              width={28}
+              width={34}
             />
             <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#1e3560', strokeWidth: 1 }} />
 
-            {/* Limite légale */}
+            {/* Amplitude recommandée (13h) */}
+            <ReferenceLine
+              y={RECOMMENDED_AMPLITUDE_MINS}
+              stroke="#f59e0b"
+              strokeOpacity={0.65}
+              strokeDasharray="5 4"
+              strokeWidth={1.5}
+            />
+            {/* Limite légale (15h) */}
             <ReferenceLine
               y={MAX_LEGAL_AMPLITUDE_MINS}
               stroke="#ef4444"

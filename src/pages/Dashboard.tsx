@@ -8,6 +8,7 @@ import {
   calcDayStats,
   calcMonthStats,
   calcMonthProjection,
+  minutesToReadable,
   type DayEntry,
 } from '../lib/calculations'
 import { useDaysStore }     from '../store/useDaysStore'
@@ -185,12 +186,12 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           <div>
             <p className="text-white text-3xl font-black tabular-nums leading-none">
               {monthStats.daysCount > 0
-                ? `${Math.floor(monthStats.totalDrivingMins / 60)}h`
+                ? minutesToReadable(monthStats.totalDrivingMins)
                 : '—'}
             </p>
             {monthStats.daysCount > 0 && (
               <p className="text-slate-500 text-xs mt-1">
-                {monthStats.daysCount} jour{monthStats.daysCount > 1 ? 's' : ''} · {monthStats.totalDrivingMins % 60}min
+                {monthStats.daysCount} jour{monthStats.daysCount > 1 ? 's' : ''}
               </p>
             )}
           </div>

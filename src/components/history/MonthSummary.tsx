@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { calcMonthStats, minutesToReadable, type DayEntry } from '../../lib/calculations'
+import { txAmpTextColor, txServiceOptimalTextColor } from '../../lib/colors'
 
 interface MonthSummaryProps {
   entries: DayEntry[]
@@ -15,6 +16,16 @@ export default function MonthSummary({ entries, referenceRatePercent }: MonthSum
   const gapColor   = stats.monthlyGapMins >= 0 ? 'text-emerald-400' : 'text-red-400'
   const gapBg      = stats.monthlyGapMins >= 0 ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-red-500/10 border-red-500/25'
   const gapDisplay = `${stats.monthlyGapMins >= 0 ? '+' : ''}${minutesToReadable(stats.monthlyGapMins)}`
+
+  // Couleur TxAmp moyen : ≥ 75 % vert, < 75 % rouge
+  const txAmpColor = stats.avgAmplitudeRatePercent > 0
+    ? txAmpTextColor(stats.avgAmplitudeRatePercent)
+    : 'text-white'
+
+  // Couleur TxService moyen : sweet-spot 18–20 %
+  const txServiceColor = stats.avgServiceRatePercent > 0
+    ? txServiceOptimalTextColor(stats.avgServiceRatePercent)
+    : 'text-white'
 
   if (entries.length === 0) {
     return (
@@ -55,23 +66,33 @@ export default function MonthSummary({ entries, referenceRatePercent }: MonthSum
           value={stats.avgAmplitudeRatePercent > 0
             ? `${stats.avgAmplitudeRatePercent.toFixed(2)} %`
             : '—'}
+          valueColor={txAmpColor}
         />
         <SummaryItem
           label="TxService moyen"
           value={stats.avgServiceRatePercent > 0
             ? `${stats.avgServiceRatePercent.toFixed(2)} %`
             : '—'}
+          valueColor={txServiceColor}
         />
       </div>
     </div>
   )
 }
 
-function SummaryItem({ label, value }: { label: string; value: string }) {
+function SummaryItem({
+  label,
+  value,
+  valueColor = 'text-white',
+}: {
+  label: string
+  value: string
+  valueColor?: string
+}) {
   return (
     <div className="bg-[#080d1a] rounded-xl px-3 py-2.5">
       <p className="text-slate-600 text-[10px] uppercase tracking-wide mb-0.5">{label}</p>
-      <p className="text-white text-sm font-bold tabular-nums">{value}</p>
+      <p className={`text-sm font-bold tabular-nums ${valueColor}`}>{value}</p>
     </div>
   )
 }

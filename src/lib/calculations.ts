@@ -408,11 +408,11 @@ export function calcMonthProjection(
   const currentKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`
   if (monthKey !== currentKey) return null
 
-  // Jours restants dans le mois (à partir de demain)
+  // Jours du mois et jours restants (0 le dernier jour → on affiche quand même)
   const [year, month]  = monthKey.split('-').map(Number)
   const daysInMonth    = new Date(year, month, 0).getDate()
   const daysRemaining  = Math.max(0, daysInMonth - today.getDate())
-  if (daysRemaining === 0) return null
+  // Pas de sortie anticipée : la projection reste visible jusqu'au dernier jour
 
   const totalDriving = entries.reduce((a, e) => a + e.drivingMins, 0)
   const totalWork    = entries.reduce((a, e) => a + e.workMins, 0)
@@ -420,8 +420,9 @@ export function calcMonthProjection(
   const avgDriving = totalDriving / daysWorked
   const avgWork    = totalWork    / daysWorked
 
-  const projectedDrivingMins = Math.round(totalDriving + avgDriving * daysRemaining)
-  const projectedWorkMins    = Math.round(totalWork    + avgWork    * daysRemaining)
+  // Formule : moyenne journalière × total des jours du mois
+  const projectedDrivingMins = Math.round(avgDriving * daysInMonth)
+  const projectedWorkMins    = Math.round(avgWork    * daysInMonth)
   const projectedServiceMins = calcServiceMins(projectedDrivingMins, projectedWorkMins)
 
   const projectedServiceRatePercent = calcServiceRatePercent(projectedWorkMins, projectedServiceMins)

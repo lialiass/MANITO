@@ -52,7 +52,7 @@ export default function ProjectionCard({ projection }: ProjectionCardProps) {
           <p className="text-white font-semibold text-sm">Projection fin de mois</p>
         </div>
         <span className="bg-blue-500/15 border border-blue-500/25 text-blue-300 text-[11px] font-medium px-2.5 py-0.5 rounded-full">
-          {daysRemaining} j restant{daysRemaining > 1 ? 's' : ''}
+          {daysRemaining === 0 ? 'Dernier jour' : `${daysRemaining} j restant${daysRemaining > 1 ? 's' : ''}`}
         </span>
       </div>
 
@@ -60,7 +60,7 @@ export default function ProjectionCard({ projection }: ProjectionCardProps) {
       <div className="px-4 py-3">
         {/* Hypothèse */}
         <p className="text-slate-600 text-xs mb-3">
-          Basé sur {daysWorked} jour{daysWorked > 1 ? 's' : ''} saisi{daysWorked > 1 ? 's' : ''} — si le rythme se maintient :
+          Moyenne sur {daysWorked} jour{daysWorked > 1 ? 's' : ''} × {new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()} jours du mois :
         </p>
 
         <ProjRow label="Conduite estimée"  value={minutesToReadable(projectedDrivingMins)} />
