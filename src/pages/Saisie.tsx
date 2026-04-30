@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { CheckCircle2, AlertCircle, Clock, CalendarDays, Zap } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { CheckCircle2, AlertCircle, Clock, CalendarDays, Zap, WifiOff } from 'lucide-react'
 import { calcDayStats, minutesToReadable } from '../lib/calculations'
 import { useDaysStore } from '../store/useDaysStore'
 import { useRateForYear } from '../store/useSettingsStore'
@@ -145,6 +145,20 @@ export default function Saisie() {
   const [errors, setErrors]   = useState<Record<string, string>>({})
   const [saved, setSaved]     = useState(false)
 
+  // ── Détection connexion Internet ─────────────────────────
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
+
+  useEffect(() => {
+    const goOnline  = () => setIsOnline(true)
+    const goOffline = () => setIsOnline(false)
+    window.addEventListener('online',  goOnline)
+    window.addEventListener('offline', goOffline)
+    return () => {
+      window.removeEventListener('online',  goOnline)
+      window.removeEventListener('offline', goOffline)
+    }
+  }, [])
+
   // ── Valeurs dérivées ──────────────────────────────────────
   const drivingMins = (parseInt(drivingH, 10) || 0) * 60 + (parseInt(drivingM, 10) || 0)
   const workMins    = (parseInt(workH, 10) || 0) * 60 + (parseInt(workM, 10) || 0)
@@ -179,6 +193,7 @@ export default function Saisie() {
 
   // ── Soumission ────────────────────────────────────────────
   function handleSubmit() {
+    if (!isOnline) return   // double sécurité si le bouton est contourné
     const errs = validate()
     if (Object.keys(errs).length > 0) {
       setErrors(errs)
@@ -227,6 +242,19 @@ export default function Saisie() {
         <h2 className="text-white text-xl font-bold">Nouvelle saisie</h2>
         <p className="text-slate-500 text-sm mt-0.5">Enregistrez votre journée de travail</p>
       </div>
+
+      {/* Bannière hors connexion */}
+      {!isOnline && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-start gap-3">
+          <WifiOff size={18} className="text-amber-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-amber-300 text-sm font-semibold">Connexion Internet requise</p>
+            <p className="text-amber-400/70 text-xs mt-0.5">
+              Vous devez être connecté à Internet pour enregistrer vos données.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Bannière de succès */}
       {saved && (
@@ -376,9 +404,10 @@ export default function Saisie() {
       {/* ── Bouton de validation ──────────────────────── */}
       <button
         onClick={handleSubmit}
-        className="w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-semibold py-4 rounded-2xl text-sm transition-all duration-150 active:scale-[0.98]"
+        disabled={!isOnline}
+        className="w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-4 rounded-2xl text-sm transition-all duration-150 active:scale-[0.98]"
       >
-        Enregistrer la journée
+        {isOnline ? 'Enregistrer la journée' : 'Connexion requise'}
       </button>
 
     </div>
