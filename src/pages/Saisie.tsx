@@ -50,15 +50,15 @@ function DurationInput({
         error ? 'border-red-500/50' : 'border-[#1a2d4a]'
       }`}
     >
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center justify-center gap-2 mb-3">
         <Clock size={14} className="text-slate-500" />
         <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">{label}</p>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center justify-center gap-4">
         {/* Heures */}
         <div className="flex-1 flex flex-col items-center gap-1">
-          <div className="w-full bg-[#080d1a] border border-[#1a2d4a] rounded-xl flex items-center justify-center gap-1.5 px-3 py-3 focus-within:border-blue-500/70 transition-colors">
+          <div className="w-full bg-[#080d1a] border border-[#1a2d4a] rounded-xl flex items-center justify-center px-3 py-3 focus-within:border-blue-500/70 transition-colors">
             <input
               type="text"
               inputMode="numeric"
@@ -73,11 +73,12 @@ function DurationInput({
           <span className="text-slate-600 text-xs">heures</span>
         </div>
 
-        <span className="text-slate-600 text-xl font-light pb-4">:</span>
+        {/* Séparateur aligné sur l'input, pas sur le label en dessous */}
+        <span className="text-slate-600 text-xl font-light self-start mt-3.5">:</span>
 
         {/* Minutes */}
         <div className="flex-1 flex flex-col items-center gap-1">
-          <div className="w-full bg-[#080d1a] border border-[#1a2d4a] rounded-xl flex items-center justify-center gap-1.5 px-3 py-3 focus-within:border-blue-500/70 transition-colors">
+          <div className="w-full bg-[#080d1a] border border-[#1a2d4a] rounded-xl flex items-center justify-center px-3 py-3 focus-within:border-blue-500/70 transition-colors">
             <input
               type="text"
               inputMode="numeric"
@@ -295,9 +296,9 @@ export default function Saisie() {
           <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Horaires de service</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           {/* Début */}
-          <div>
+          <div className="flex-1 min-w-0">
             <label className="text-slate-500 text-xs block mb-1.5">Prise de service</label>
             <input
               type="time"
@@ -315,7 +316,7 @@ export default function Saisie() {
           </div>
 
           {/* Fin */}
-          <div>
+          <div className="flex-1 min-w-0">
             <label className="text-slate-500 text-xs block mb-1.5">Fin de service</label>
             <input
               type="time"
@@ -371,12 +372,12 @@ export default function Saisie() {
             value={stats.amplitudeMins !== null ? minutesToReadable(stats.amplitudeMins) : '—'}
           />
           <ResultLine
-            label="TxService (annexe / service)"
+            label="Taux du jour"
             value={`${stats.serviceRatePercent.toFixed(2)} %`}
             color={txServiceColor}
           />
           <ResultLine
-            label="TxAmp (service / amplitude)"
+            label="TxAmp"
             value={
               stats.amplitudeRatePercent !== null
                 ? `${stats.amplitudeRatePercent.toFixed(2)} %`
