@@ -3,6 +3,7 @@ import { X, Zap, AlertCircle, Clock, CalendarDays } from 'lucide-react'
 import { calcDayStats, minutesToReadable, type DayEntry } from '../../lib/calculations'
 import { useDaysStore } from '../../store/useDaysStore'
 import { useRateForYear } from '../../store/useSettingsStore'
+import { txServiceTextColor } from '../../lib/colors'
 
 // ------------------------------------------------------------
 // Helpers
@@ -18,9 +19,18 @@ function minsToM(mins: number): string {
 }
 
 // ------------------------------------------------------------
+// Classes partagées — identiques à Saisie.tsx
+// ------------------------------------------------------------
+
+const inputBase =
+  'w-full min-w-0 box-border rounded-2xl border border-[#1a3a5c] bg-[#060b16] text-white text-center py-3 text-sm focus:border-blue-500/70 focus:outline-none transition-colors'
+
+const inputError =
+  'w-full min-w-0 box-border rounded-2xl border border-red-500/60 bg-[#060b16] text-white text-center py-3 text-sm focus:outline-none transition-colors'
+
+// ------------------------------------------------------------
 // Sous-composant : saisie d'une durée (heures + minutes)
-// Logique identique à Saisie.tsx — à extraire en composant partagé
-// lors d'une prochaine phase de refactoring.
+// Structure identique à Saisie.tsx
 // ------------------------------------------------------------
 
 interface DurationInputProps {
@@ -43,47 +53,62 @@ function DurationInput({ label, hours, minutes, onHoursChange, onMinutesChange, 
   }
 
   return (
-    <div className={`bg-[#080d1a] border rounded-xl p-3 ${error ? 'border-red-500/50' : 'border-[#1a2d4a]'}`}>
-      <div className="flex items-center gap-1.5 mb-2">
-        <Clock size={12} className="text-slate-600" />
-        <p className="text-slate-500 text-[11px] font-medium uppercase tracking-wider">{label}</p>
+    <div className={`w-full overflow-hidden bg-[#0e1628] border rounded-2xl pt-4 pb-4 px-4 ${
+      error ? 'border-red-500/50' : 'border-[#1a2d4a]'
+    }`}>
+      {/* Label centré */}
+      <div className="flex items-center justify-center gap-2 mb-3">
+        <Clock size={14} className="text-slate-500 shrink-0" />
+        <p className="text-slate-400 text-xs font-medium uppercase tracking-wider truncate">{label}</p>
       </div>
-      <div className="flex items-center gap-2">
-        <div className="flex-1 flex flex-col items-center gap-0.5">
-          <div className="w-full bg-[#0e1628] border border-[#1a2d4a] rounded-lg flex items-center justify-center px-2 py-2 focus-within:border-blue-500/60 transition-colors">
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={2}
-              value={hours}
-              placeholder="00"
-              onChange={(e) => handleHours(e.target.value)}
-              className="w-full bg-transparent text-white text-xl font-bold text-center focus:outline-none placeholder:text-slate-700"
-            />
+
+      {/* px-5 sans overflow-hidden → bordures entièrement visibles */}
+      <div className="w-full px-5">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 w-full">
+
+          {/* Heures */}
+          <div className="flex flex-col items-center gap-1 min-w-0">
+            <div className="w-full min-w-0 box-border bg-[#060b16] border border-[#1a3a5c] rounded-2xl flex items-center justify-center px-2 py-3 focus-within:border-blue-500/70 transition-colors">
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={2}
+                value={hours}
+                placeholder="00"
+                onChange={(e) => handleHours(e.target.value)}
+                className="w-full min-w-0 bg-transparent text-white text-2xl font-bold text-center focus:outline-none placeholder:text-slate-700"
+              />
+            </div>
+            <span className="text-slate-600 text-xs">heures</span>
           </div>
-          <span className="text-slate-700 text-[10px]">h</span>
-        </div>
-        <span className="text-slate-700 text-lg font-light pb-4">:</span>
-        <div className="flex-1 flex flex-col items-center gap-0.5">
-          <div className="w-full bg-[#0e1628] border border-[#1a2d4a] rounded-lg flex items-center justify-center px-2 py-2 focus-within:border-blue-500/60 transition-colors">
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={2}
-              value={minutes}
-              placeholder="00"
-              onChange={(e) => handleMinutes(e.target.value)}
-              className="w-full bg-transparent text-white text-xl font-bold text-center focus:outline-none placeholder:text-slate-700"
-            />
+
+          {/* Séparateur */}
+          <span className="text-slate-600 text-xl font-light select-none">:</span>
+
+          {/* Minutes */}
+          <div className="flex flex-col items-center gap-1 min-w-0">
+            <div className="w-full min-w-0 box-border bg-[#060b16] border border-[#1a3a5c] rounded-2xl flex items-center justify-center px-2 py-3 focus-within:border-blue-500/70 transition-colors">
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={2}
+                value={minutes}
+                placeholder="00"
+                onChange={(e) => handleMinutes(e.target.value)}
+                className="w-full min-w-0 bg-transparent text-white text-2xl font-bold text-center focus:outline-none placeholder:text-slate-700"
+              />
+            </div>
+            <span className="text-slate-600 text-xs">minutes</span>
           </div>
-          <span className="text-slate-700 text-[10px]">min</span>
+
         </div>
       </div>
+
       {error && (
-        <p className="flex items-center gap-1 text-red-400 text-[11px] mt-1.5">
-          <AlertCircle size={11} />{error}
+        <p className="flex items-center gap-1.5 text-red-400 text-xs mt-2.5 px-5">
+          <AlertCircle size={12} />{error}
         </p>
       )}
     </div>
@@ -96,9 +121,9 @@ function DurationInput({ label, hours, minutes, onHoursChange, onMinutesChange, 
 
 function ResultLine({ label, value, color = 'text-white' }: { label: string; value: string; color?: string }) {
   return (
-    <div className="flex items-center justify-between py-2 border-b border-[#1a2d4a]/60 last:border-0">
-      <span className="text-slate-500 text-xs">{label}</span>
-      <span className={`text-xs font-bold tabular-nums ${color}`}>{value}</span>
+    <div className="flex items-center justify-between py-2.5 border-b border-[#1a2d4a]/70 last:border-0 gap-2">
+      <span className="text-slate-400 text-sm min-w-0 truncate">{label}</span>
+      <span className={`text-sm font-bold tabular-nums shrink-0 ${color}`}>{value}</span>
     </div>
   )
 }
@@ -121,8 +146,6 @@ export default function EditModal({ entry, onClose }: EditModalProps) {
 
   // ── État du formulaire (pré-rempli depuis l'entrée) ────────
   const [date,       setDate]       = useState(entry.date)
-
-  // ── Taux de référence selon l'année de la date en cours ───
   const dateYear = parseInt(date.slice(0, 4), 10) || new Date().getFullYear()
   const referenceRatePercent = useRateForYear(dateYear)
   const [startTime,  setStartTime]  = useState(entry.startTime)
@@ -152,11 +175,11 @@ export default function EditModal({ entry, onClose }: EditModalProps) {
   // ── Validation ────────────────────────────────────────────
   function validate(): Record<string, string> {
     const errs: Record<string, string> = {}
-    if (!date)                                      errs.date       = 'Date requise'
-    if (!startTime)                                 errs.startTime  = 'Heure de début requise'
-    if (!endTime)                                   errs.endTime    = 'Heure de fin requise'
-    if (startTime && endTime && endTime <= startTime) errs.endTime  = 'La fin doit être après le début'
-    if (drivingMins <= 0)                           errs.drivingMins = 'Conduite > 0 requis'
+    if (!date)                                        errs.date        = 'Date requise'
+    if (!startTime)                                   errs.startTime   = 'Heure de début requise'
+    if (!endTime)                                     errs.endTime     = 'Heure de fin requise'
+    if (startTime && endTime && endTime <= startTime) errs.endTime     = 'La fin doit être après le début'
+    if (drivingMins <= 0)                             errs.drivingMins = 'Conduite > 0 requis'
     return errs
   }
 
@@ -168,7 +191,8 @@ export default function EditModal({ entry, onClose }: EditModalProps) {
     onClose()
   }
 
-  // ── Écart display ─────────────────────────────────────────
+  // ── Couleurs ──────────────────────────────────────────────
+  const txServiceColor = stats ? txServiceTextColor(stats.serviceRatePercent) : 'text-slate-400'
   const gapColor   = stats ? (stats.gapMins >= 0 ? 'text-emerald-400' : 'text-red-400') : 'text-slate-500'
   const gapDisplay = stats
     ? `${stats.gapMins >= 0 ? '+' : ''}${minutesToReadable(stats.gapMins)}`
@@ -183,14 +207,16 @@ export default function EditModal({ entry, onClose }: EditModalProps) {
         onClick={onClose}
       />
 
-      {/* Panel du bas */}
+      {/* Panel bas — même largeur max que le contenu principal */}
       <div className="relative bg-[#0e1628] rounded-t-3xl border-t border-[#1a2d4a] max-h-[92vh] overflow-y-auto scrollbar-hide max-w-md mx-auto w-full">
+
         {/* Poignée */}
         <div className="flex justify-center pt-3 pb-1">
           <div className="w-10 h-1 bg-[#1a2d4a] rounded-full" />
         </div>
 
         <div className="px-5 pb-8 pt-2 space-y-4">
+
           {/* Header */}
           <div className="flex items-center justify-between">
             <h3 className="text-white text-lg font-bold">Modifier la journée</h3>
@@ -203,47 +229,77 @@ export default function EditModal({ entry, onClose }: EditModalProps) {
           </div>
 
           {/* ── Date ─────────────────────────────────────── */}
-          <div className={`bg-[#080d1a] border rounded-xl p-3 ${errors.date ? 'border-red-500/50' : 'border-[#1a2d4a]'}`}>
-            <div className="flex items-center gap-1.5 mb-2">
-              <CalendarDays size={12} className="text-slate-600" />
-              <label className="text-slate-500 text-[11px] font-medium uppercase tracking-wider">Date</label>
+          <div className={`w-full overflow-hidden bg-[#0e1628] border rounded-2xl pt-4 pb-4 px-4 ${
+            errors.date ? 'border-red-500/50' : 'border-[#1a2d4a]'
+          }`}>
+            <div className="flex items-center gap-2 mb-2.5">
+              <CalendarDays size={14} className="text-slate-500 shrink-0" />
+              <label className="text-slate-400 text-xs font-medium uppercase tracking-wider">Date</label>
             </div>
-            <input
-              type="date"
-              value={date}
-              max={new Date().toISOString().slice(0, 10)}
-              onChange={(e) => { setDate(e.target.value); setErrors(p => ({ ...p, date: '' })) }}
-              className="w-full bg-[#0e1628] text-white border border-[#1a2d4a] rounded-lg px-3 py-2.5 text-sm focus:border-blue-500/60 focus:outline-none transition-colors"
-            />
-            {errors.date && <p className="text-red-400 text-[11px] mt-1 flex items-center gap-1"><AlertCircle size={11} />{errors.date}</p>}
+
+            {/* px-5 sans overflow-hidden → arrondi droit visible */}
+            <div className="w-full px-5">
+              <input
+                type="date"
+                value={date}
+                max={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => { setDate(e.target.value); setErrors(p => ({ ...p, date: '' })) }}
+                className={errors.date ? inputError : inputBase}
+              />
+            </div>
+
+            {errors.date && (
+              <p className="flex items-center gap-1.5 text-red-400 text-xs mt-2 px-5">
+                <AlertCircle size={12} />{errors.date}
+              </p>
+            )}
           </div>
 
           {/* ── Horaires ─────────────────────────────────── */}
-          <div className={`bg-[#080d1a] border rounded-xl p-3 ${(errors.startTime || errors.endTime) ? 'border-red-500/50' : 'border-[#1a2d4a]'}`}>
-            <div className="flex items-center gap-1.5 mb-2">
-              <Clock size={12} className="text-slate-600" />
-              <p className="text-slate-500 text-[11px] font-medium uppercase tracking-wider">Horaires</p>
+          <div className={`w-full overflow-hidden bg-[#0e1628] border rounded-2xl pt-4 pb-4 px-4 ${
+            (errors.startTime || errors.endTime) ? 'border-red-500/50' : 'border-[#1a2d4a]'
+          }`}>
+            <div className="flex items-center gap-2 mb-3">
+              <Clock size={14} className="text-slate-500 shrink-0" />
+              <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Horaires de service</p>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-slate-600 text-[10px] block mb-1">Début</label>
-                <input
-                  type="time"
-                  value={startTime}
-                  onChange={(e) => { setStartTime(e.target.value); setErrors(p => ({ ...p, startTime: '' })) }}
-                  className={`w-full bg-[#0e1628] text-white border rounded-lg px-2 py-2.5 text-sm focus:border-blue-500/60 focus:outline-none transition-colors ${errors.startTime ? 'border-red-500/60' : 'border-[#1a2d4a]'}`}
-                />
-                {errors.startTime && <p className="text-red-400 text-[10px] mt-0.5">{errors.startTime}</p>}
-              </div>
-              <div>
-                <label className="text-slate-600 text-[10px] block mb-1">Fin</label>
-                <input
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => { setEndTime(e.target.value); setErrors(p => ({ ...p, endTime: '' })) }}
-                  className={`w-full bg-[#0e1628] text-white border rounded-lg px-2 py-2.5 text-sm focus:border-blue-500/60 focus:outline-none transition-colors ${errors.endTime ? 'border-red-500/60' : 'border-[#1a2d4a]'}`}
-                />
-                {errors.endTime && <p className="text-red-400 text-[10px] mt-0.5">{errors.endTime}</p>}
+
+            {/* px-5 sans overflow-hidden → bordures complètes des deux inputs */}
+            <div className="w-full px-5">
+              <div className="grid grid-cols-2 gap-4 w-full">
+
+                {/* Prise de service */}
+                <div className="min-w-0">
+                  <label className="text-slate-500 text-xs block mb-1.5">Prise de service</label>
+                  <input
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => { setStartTime(e.target.value); setErrors(p => ({ ...p, startTime: '' })) }}
+                    className={errors.startTime ? inputError : inputBase}
+                  />
+                  {errors.startTime && (
+                    <p className="text-red-400 text-[11px] mt-1 flex items-center gap-1">
+                      <AlertCircle size={11} />{errors.startTime}
+                    </p>
+                  )}
+                </div>
+
+                {/* Fin de service */}
+                <div className="min-w-0">
+                  <label className="text-slate-500 text-xs block mb-1.5">Fin de service</label>
+                  <input
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => { setEndTime(e.target.value); setErrors(p => ({ ...p, endTime: '' })) }}
+                    className={errors.endTime ? inputError : inputBase}
+                  />
+                  {errors.endTime && (
+                    <p className="text-red-400 text-[11px] mt-1 flex items-center gap-1">
+                      <AlertCircle size={11} />{errors.endTime}
+                    </p>
+                  )}
+                </div>
+
               </div>
             </div>
           </div>
@@ -265,19 +321,37 @@ export default function EditModal({ entry, onClose }: EditModalProps) {
 
           {/* ── Calcul live ──────────────────────────────── */}
           {stats ? (
-            <div className="bg-blue-600/10 border border-blue-500/20 rounded-xl p-3">
-              <div className="flex items-center gap-1.5 mb-2">
-                <Zap size={12} className="text-blue-400" />
-                <p className="text-blue-300 text-[11px] font-semibold uppercase tracking-wider">Calcul en direct</p>
+            <div className="w-full overflow-hidden bg-blue-600/10 border border-blue-500/25 rounded-2xl p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Zap size={13} className="text-blue-400 shrink-0" />
+                <p className="text-blue-300 text-xs font-semibold uppercase tracking-wider">Calcul en direct</p>
               </div>
-              <ResultLine label="Service"   value={minutesToReadable(stats.serviceMins)} />
-              <ResultLine label="Amplitude" value={stats.amplitudeMins !== null ? minutesToReadable(stats.amplitudeMins) : '—'} />
-              <ResultLine label="TxAmp"     value={stats.amplitudeRatePercent !== null ? `${stats.amplitudeRatePercent.toFixed(2)} %` : '—'} />
-              <ResultLine label="Écart"     value={gapDisplay} color={gapColor} />
+              <p className="text-slate-500 text-[11px] mb-3">Taux de référence : {referenceRatePercent} %</p>
+              <ResultLine label="Temps de service" value={minutesToReadable(stats.serviceMins)} />
+              <ResultLine
+                label="Amplitude"
+                value={stats.amplitudeMins !== null ? minutesToReadable(stats.amplitudeMins) : '—'}
+              />
+              <ResultLine
+                label="Taux du jour"
+                value={`${stats.serviceRatePercent.toFixed(2)} %`}
+                color={txServiceColor}
+              />
+              <ResultLine
+                label="TxAmp"
+                value={stats.amplitudeRatePercent !== null ? `${stats.amplitudeRatePercent.toFixed(2)} %` : '—'}
+              />
+              <ResultLine label="Écart" value={gapDisplay} color={gapColor} />
             </div>
           ) : (
-            <div className="bg-[#080d1a] border border-[#1a2d4a] rounded-xl p-3">
-              <p className="text-slate-600 text-xs">Renseignez les horaires et la conduite pour voir le calcul.</p>
+            <div className="w-full overflow-hidden bg-[#0e1628] border border-[#1a2d4a] rounded-2xl p-4">
+              <div className="flex items-center gap-2 mb-1.5">
+                <Zap size={13} className="text-slate-600 shrink-0" />
+                <p className="text-slate-500 text-xs font-medium uppercase tracking-wider">Calcul en direct</p>
+              </div>
+              <p className="text-slate-600 text-sm">
+                Renseignez les horaires et la conduite pour voir le calcul.
+              </p>
             </div>
           )}
 
@@ -296,6 +370,7 @@ export default function EditModal({ entry, onClose }: EditModalProps) {
               Enregistrer
             </button>
           </div>
+
         </div>
       </div>
     </div>
