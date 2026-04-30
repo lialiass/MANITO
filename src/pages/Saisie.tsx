@@ -45,7 +45,7 @@ function DurationInput({
 
   return (
     <div
-      className={`w-full max-w-full overflow-hidden bg-[#0e1628] border rounded-2xl p-4 ${
+      className={`w-full max-w-full overflow-hidden bg-[#0e1628] border rounded-2xl pt-4 pb-4 px-4 ${
         error ? 'border-red-500/50' : 'border-[#1a2d4a]'
       }`}
     >
@@ -55,50 +55,53 @@ function DurationInput({
         <p className="text-slate-400 text-xs font-medium uppercase tracking-wider truncate">{label}</p>
       </div>
 
-      {/* 3 colonnes : [heures] [séparateur] [minutes] */}
-      <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-3 w-full">
+      {/* Buffer px-4 — isole les inputs du bord de la card */}
+      <div className="w-full overflow-hidden px-4">
+        {/* 3 colonnes : [heures] [séparateur] [minutes] */}
+        <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-3 w-full">
 
-        {/* Heures */}
-        <div className="flex flex-col items-center gap-1 min-w-0">
-          <div className="w-full min-w-0 bg-[#080d1a] border border-[#1a2d4a] rounded-xl flex items-center justify-center px-2 py-3 focus-within:border-blue-500/70 transition-colors overflow-hidden">
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={2}
-              value={hours}
-              placeholder="00"
-              onChange={(e) => handleHours(e.target.value)}
-              className="w-full min-w-0 bg-transparent text-white text-2xl font-bold text-center focus:outline-none placeholder:text-slate-700"
-            />
+          {/* Heures */}
+          <div className="flex flex-col items-center gap-1 min-w-0 overflow-hidden">
+            <div className="w-full min-w-0 box-border bg-[#080d1a] border border-[#1a2d4a] rounded-xl flex items-center justify-center px-2 py-3 focus-within:border-blue-500/70 transition-colors overflow-hidden">
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={2}
+                value={hours}
+                placeholder="00"
+                onChange={(e) => handleHours(e.target.value)}
+                className="w-full min-w-0 bg-transparent text-white text-2xl font-bold text-center focus:outline-none placeholder:text-slate-700"
+              />
+            </div>
+            <span className="text-slate-600 text-xs">heures</span>
           </div>
-          <span className="text-slate-600 text-xs">heures</span>
-        </div>
 
-        {/* Séparateur — aligné sur le centre de l'input (mt-3.5 ≈ mi-hauteur de l'input) */}
-        <span className="text-slate-600 text-xl font-light mt-3.5 select-none">:</span>
+          {/* Séparateur — aligné sur le centre de l'input */}
+          <span className="text-slate-600 text-xl font-light mt-3.5 select-none">:</span>
 
-        {/* Minutes */}
-        <div className="flex flex-col items-center gap-1 min-w-0">
-          <div className="w-full min-w-0 bg-[#080d1a] border border-[#1a2d4a] rounded-xl flex items-center justify-center px-2 py-3 focus-within:border-blue-500/70 transition-colors overflow-hidden">
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={2}
-              value={minutes}
-              placeholder="00"
-              onChange={(e) => handleMinutes(e.target.value)}
-              className="w-full min-w-0 bg-transparent text-white text-2xl font-bold text-center focus:outline-none placeholder:text-slate-700"
-            />
+          {/* Minutes */}
+          <div className="flex flex-col items-center gap-1 min-w-0 overflow-hidden">
+            <div className="w-full min-w-0 box-border bg-[#080d1a] border border-[#1a2d4a] rounded-xl flex items-center justify-center px-2 py-3 focus-within:border-blue-500/70 transition-colors overflow-hidden">
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={2}
+                value={minutes}
+                placeholder="00"
+                onChange={(e) => handleMinutes(e.target.value)}
+                className="w-full min-w-0 bg-transparent text-white text-2xl font-bold text-center focus:outline-none placeholder:text-slate-700"
+              />
+            </div>
+            <span className="text-slate-600 text-xs">minutes</span>
           </div>
-          <span className="text-slate-600 text-xs">minutes</span>
-        </div>
 
+        </div>
       </div>
 
       {error && (
-        <p className="flex items-center gap-1.5 text-red-400 text-xs mt-2.5">
+        <p className="flex items-center gap-1.5 text-red-400 text-xs mt-2.5 px-4">
           <AlertCircle size={12} />
           {error}
         </p>
@@ -246,7 +249,7 @@ export default function Saisie() {
       )}
 
       {/* ── Date ──────────────────────────────────────── */}
-      <div className={`w-full max-w-full overflow-hidden bg-[#0e1628] border rounded-2xl p-4 ${
+      <div className={`w-full max-w-full overflow-hidden bg-[#0e1628] border rounded-2xl pt-4 pb-4 px-4 ${
         errors.date ? 'border-red-500/50' : 'border-[#1a2d4a]'
       }`}>
         <div className="flex items-center gap-2 mb-2.5">
@@ -255,22 +258,24 @@ export default function Saisie() {
             Date
           </label>
         </div>
-        <input
-          type="date"
-          value={date}
-          max={todayISO()}
-          onChange={(e) => { setDate(e.target.value); setErrors(p => ({ ...p, date: '' })) }}
-          className="w-full min-w-0 max-w-full bg-[#080d1a] text-white border border-[#1a2d4a] rounded-xl px-4 py-3 text-sm focus:border-blue-500/70 focus:outline-none transition-colors"
-        />
+        <div className="w-full overflow-hidden px-4">
+          <input
+            type="date"
+            value={date}
+            max={todayISO()}
+            onChange={(e) => { setDate(e.target.value); setErrors(p => ({ ...p, date: '' })) }}
+            className="w-full min-w-0 max-w-full box-border bg-[#080d1a] text-white border border-[#1a2d4a] rounded-xl px-3 py-3 text-sm focus:border-blue-500/70 focus:outline-none transition-colors"
+          />
+        </div>
         {errors.date && (
-          <p className="flex items-center gap-1.5 text-red-400 text-xs mt-2">
+          <p className="flex items-center gap-1.5 text-red-400 text-xs mt-2 px-4">
             <AlertCircle size={12} />{errors.date}
           </p>
         )}
       </div>
 
       {/* ── Horaires ──────────────────────────────────── */}
-      <div className={`w-full max-w-full overflow-hidden bg-[#0e1628] border rounded-2xl p-4 ${
+      <div className={`w-full max-w-full overflow-hidden bg-[#0e1628] border rounded-2xl pt-4 pb-4 px-4 ${
         (errors.startTime || errors.endTime) ? 'border-red-500/50' : 'border-[#1a2d4a]'
       }`}>
         <div className="flex items-center gap-2 mb-3">
@@ -278,45 +283,47 @@ export default function Saisie() {
           <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Horaires de service</p>
         </div>
 
-        {/* 2 colonnes côte à côte — min-w-0 pour contenir les inputs time iOS */}
-        <div className="grid grid-cols-2 gap-3 w-full">
+        {/* 2 colonnes côte à côte avec buffer px-4 contre le débordement iOS */}
+        <div className="w-full overflow-hidden px-4">
+          <div className="grid grid-cols-2 gap-3 w-full">
 
-          {/* Prise de service */}
-          <div className="min-w-0">
-            <label className="text-slate-500 text-xs block mb-1.5">Prise de service</label>
-            <input
-              type="time"
-              value={startTime}
-              onChange={(e) => { setStartTime(e.target.value); setErrors(p => ({ ...p, startTime: '' })) }}
-              className={`w-full min-w-0 max-w-full bg-[#080d1a] text-white border rounded-xl px-2 py-3 text-sm focus:border-blue-500/70 focus:outline-none transition-colors ${
-                errors.startTime ? 'border-red-500/60' : 'border-[#1a2d4a]'
-              }`}
-            />
-            {errors.startTime && (
-              <p className="text-red-400 text-[11px] mt-1 flex items-center gap-1">
-                <AlertCircle size={11} />{errors.startTime}
-              </p>
-            )}
+            {/* Prise de service */}
+            <div className="min-w-0 overflow-hidden">
+              <label className="text-slate-500 text-xs block mb-1.5">Prise de service</label>
+              <input
+                type="time"
+                value={startTime}
+                onChange={(e) => { setStartTime(e.target.value); setErrors(p => ({ ...p, startTime: '' })) }}
+                className={`w-full min-w-0 max-w-full box-border bg-[#080d1a] text-white border rounded-xl px-1 py-3 text-sm focus:border-blue-500/70 focus:outline-none transition-colors ${
+                  errors.startTime ? 'border-red-500/60' : 'border-[#1a2d4a]'
+                }`}
+              />
+              {errors.startTime && (
+                <p className="text-red-400 text-[11px] mt-1 flex items-center gap-1">
+                  <AlertCircle size={11} />{errors.startTime}
+                </p>
+              )}
+            </div>
+
+            {/* Fin de service */}
+            <div className="min-w-0 overflow-hidden">
+              <label className="text-slate-500 text-xs block mb-1.5">Fin de service</label>
+              <input
+                type="time"
+                value={endTime}
+                onChange={(e) => { setEndTime(e.target.value); setErrors(p => ({ ...p, endTime: '' })) }}
+                className={`w-full min-w-0 max-w-full box-border bg-[#080d1a] text-white border rounded-xl px-1 py-3 text-sm focus:border-blue-500/70 focus:outline-none transition-colors ${
+                  errors.endTime ? 'border-red-500/60' : 'border-[#1a2d4a]'
+                }`}
+              />
+              {errors.endTime && (
+                <p className="text-red-400 text-[11px] mt-1 flex items-center gap-1">
+                  <AlertCircle size={11} />{errors.endTime}
+                </p>
+              )}
+            </div>
+
           </div>
-
-          {/* Fin de service */}
-          <div className="min-w-0">
-            <label className="text-slate-500 text-xs block mb-1.5">Fin de service</label>
-            <input
-              type="time"
-              value={endTime}
-              onChange={(e) => { setEndTime(e.target.value); setErrors(p => ({ ...p, endTime: '' })) }}
-              className={`w-full min-w-0 max-w-full bg-[#080d1a] text-white border rounded-xl px-2 py-3 text-sm focus:border-blue-500/70 focus:outline-none transition-colors ${
-                errors.endTime ? 'border-red-500/60' : 'border-[#1a2d4a]'
-              }`}
-            />
-            {errors.endTime && (
-              <p className="text-red-400 text-[11px] mt-1 flex items-center gap-1">
-                <AlertCircle size={11} />{errors.endTime}
-              </p>
-            )}
-          </div>
-
         </div>
       </div>
 
